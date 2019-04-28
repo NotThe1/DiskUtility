@@ -33,7 +33,7 @@ public class UpdateSystemDisk {
 
 			/** set up as system disk **/
 			Class<DiskUtility> thisClass = DiskUtility.class;
-			String resourcesPathAlt = "/workingOS/";
+//			String resourcesPathAlt = "/workingOS/";
 			String resourcesPath = "/Z80Code/";
 			String BootSector = resourcesPath + "BootSector.mem";
 			String CCP = resourcesPath + "CCP.mem";
@@ -86,8 +86,6 @@ public class UpdateSystemDisk {
 
 	public static void updateDisks() {
 		JFileChooser fc = FilePicker.getDisks();
-//		JFileChooser fc = FilePicker.getDiskPicker();
-//		fc.setMultiSelectionEnabled(true); // Override the default single selection.
 		if (fc.showOpenDialog(null) == JFileChooser.CANCEL_OPTION) {
 			return;
 		} // if
@@ -95,7 +93,6 @@ public class UpdateSystemDisk {
 		File[] files = fc.getSelectedFiles();
 		for (File file : files) {
 			log.info("Updated System on " + file.toString());
-//			System.out.printf("File: %s%n", file);
 			updateDisk(file);
 		}
 
