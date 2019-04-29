@@ -11,8 +11,8 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.UIManager;
 
+//public class HDSeekPanel extends HDNumberBox {
 public class HDSeekPanel extends HDNumberBox {
-
 	private static final long serialVersionUID = 1L;
 
 	private int stepValue;

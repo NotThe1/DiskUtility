@@ -1,6 +1,6 @@
 package diskUtility;
 
-// 1225 & 1943 ( 1226 & 1944 )
+// 1959 //		hdnSeekPanel.addHDNumberValueChangedListener(adapterForDiskUtility);
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -496,6 +496,7 @@ public class DiskUtility extends JDialog {
 		for (HDNumberBox hdNumberBox : hdNumberBoxes) {
 			hdNumberBox.setDecimalDisplay(tbDisplayBase.isSelected());
 		} // for
+		hdnSeekPanel.setDecimalDisplay(tbDisplayBase.isSelected());
 
 	}// setDisplayRadix
 
