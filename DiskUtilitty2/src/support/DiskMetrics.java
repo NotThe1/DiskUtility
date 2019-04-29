@@ -10,8 +10,8 @@ public class DiskMetrics {
 	public int tracksPerHead;
 	public int sectorsPerTrack;
 	public int bytesPerSector;
-	public String fileExtension;
-	public String descriptor;
+//	public String fileExtension;
+//	public String descriptor;
 	public int sectorsPerBlock;
 	public int directoryBlockCount;
 //	public int directoryStartSector;
@@ -29,8 +29,8 @@ public class DiskMetrics {
 		this.tracksPerHead = tracksPerHead;
 		this.sectorsPerTrack = sectorsPerTrack;
 		this.bytesPerSector = bytesPerSector;
-		this.fileExtension = fileExtension;
-		this.descriptor = descriptor;
+//		this.fileExtension = fileExtension;
+//		this.descriptor = descriptor;
 		setDirectoryBlockCount(directoryBlockCount);
 		setSectorsPerBlock(sectorsPerBlock);
 		setBootDisk(bootDisk);

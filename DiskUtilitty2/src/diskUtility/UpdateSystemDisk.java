@@ -81,6 +81,7 @@ public class UpdateSystemDisk {
 		} // if
 
 		updateDisk(selectedFile);
+		log.info("Updated System on " + selectedFile.toString());
 
 	}// updateDisk
 
@@ -92,9 +93,9 @@ public class UpdateSystemDisk {
 
 		File[] files = fc.getSelectedFiles();
 		for (File file : files) {
-			log.info("Updated System on " + file.toString());
 			updateDisk(file);
-		}
+			log.info("Updated System on " + file.toString());
+		}//for 
 
 	}// updateDisks
 

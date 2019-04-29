@@ -67,7 +67,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
-import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -86,18 +85,6 @@ import support.Disk;
 import support.DiskMetrics;
 import support.FilePicker;
 import support.RawDiskDrive;
-
-//import disks.CPMDirectory;
-//import disks.CPMDirectoryEntry;
-//import disks.CPMFile;
-//import disks.Disk;
-//import disks.RawDiskDrive;
-//import utilities.filePicker.FilePicker;
-//import utilities.hdNumberBox.HDNumberBox;
-//import utilities.hdNumberBox.HDNumberValueChangeEvent;
-//import utilities.hdNumberBox.HDNumberValueChangeListener;
-//import utilities.hdNumberBox.HDSeekPanel;
-//import utilities.hexEditPanel.HexEditDisplayPanel;
 
 public class DiskUtility extends JDialog {
 	private static final long serialVersionUID = 1L;
@@ -134,24 +121,23 @@ public class DiskUtility extends JDialog {
 	private String hostDirectory;
 
 	private int fileMatchCount;
-	private static StyledDocument doc;
 
 	private CatalogTableModel catalogTableModel = new CatalogTableModel();
 	private JTable catalogTable = new JTable(catalogTableModel);
+	private static StyledDocument doc;
 
+	private AdapterForDiskUtility adapterForDiskUtility = new AdapterForDiskUtility();
+	
 	private HexEditDisplayPanel panelFileHex;
 	private HexEditDisplayPanel panelSectorDisplay;
-
-	// private String radixFormat;
-
+	private ArrayList<HDNumberBox> hdNumberBoxes = new ArrayList<HDNumberBox>();
+	
 	private static DiskUtility instance = new DiskUtility();
 
 	public static DiskUtility getInstance() {
 		return instance;
 	}// getInstance
 
-	AdapterForDiskUtility adapterForDiskUtility = new AdapterForDiskUtility();
-	private ArrayList<HDNumberBox> hdNumberBoxes = new ArrayList<HDNumberBox>();
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -641,17 +627,20 @@ public class DiskUtility extends JDialog {
 		} // if - have diskDrive
 		haveDisk(false);
 		manageFileMenus(MNU_DISK_CLOSE);
+		log.info("Closed  Disk:");
+		log.infof("       Path : %s%n", activeDiskAbsolutePath);
+
 	}// doFileOpen
 
 	private void doDiskSave() {
-		log.info("[HexEditor.doFileSave]");
+//		log.info("[HexEditor.doFileSave]");
 		if (sectorChanged == true) {
 			diskDrive.write(panelSectorDisplay.getData());
 		} // if changed data for last displayed sector
 		Path originalPath = Paths.get(activeDiskAbsolutePath);
 		Path workingPath = Paths.get(workingDisk.getAbsolutePath());
 		// doDiskSave(originalPath,workingPath);
-		log.infof("Files.copy(%s, %s, StandardCopyOption.REPLACE_EXISTING)%n", workingPath, originalPath);
+		log.infof("Working disk is: %s%n", workingPath);
 		try {
 			Files.copy(workingPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
 			setDataChange(false);
@@ -664,20 +653,24 @@ public class DiskUtility extends JDialog {
 			e.printStackTrace();
 		} // try
 		setDataChange(false);
+		log.info("Saved  Disk:");
+		log.infof("       Path : %s%n", activeDiskAbsolutePath);
+
 	}// doFileSave
 
 	private void doDiskSaveAs() {
 		System.out.println("** [doDiskSaveAs] **");
 		JFileChooser fc = FilePicker.getDisk();
-		// JFileChooser fc = FilePicker.getDiskPicker();
-		if (fc.showOpenDialog(this) == JFileChooser.CANCEL_OPTION) {
-			log.info("Bailed out of disk open");
+		if (fc.showSaveDialog(this) == JFileChooser.CANCEL_OPTION) {
+			log.info("Bailed out of disk save");
 			return;
 		} // if - cancelled
+		
 		File rawTargetFile = fc.getSelectedFile();
 		String targetDirectory = rawTargetFile.getParent();
 		String targetFileName = rawTargetFile.getName();
 		targetFileName = cleanupFileName(targetFileName, ".F3HD");
+		
 		File targetFile = new File(targetDirectory + FILE_SEPARATOR + targetFileName);
 		// String sourceFileName = diskDrive.getFileAbsoluteName();
 		if (targetFile.exists()) {
@@ -688,6 +681,7 @@ public class DiskUtility extends JDialog {
 		} // if does file exists
 
 		setActiveFileInfo(targetFile);
+		log.info("Saved Disk As:");
 		doDiskSave();
 		manageFileMenus(MNU_DISK_LOAD);
 
@@ -753,6 +747,7 @@ public class DiskUtility extends JDialog {
 
 	private void doToolsNew() {
 		File newFile = MakeNewDisk.makeNewDisk(this);
+		log.infof("%nMaking new disk%n");
 		if (newFile == null) {
 			log.error("Failed to make a new Disk");
 			return;
@@ -932,8 +927,11 @@ public class DiskUtility extends JDialog {
 		fileMatchCount = 0;
 		Pattern searchPattern = makePattern();
 		findFiles(new File(lblFolder.getText()), searchPattern);
-		lblCatalogHeader
-				.setText(String.format("%,d matches for search pattern %s", fileMatchCount, txtFindFileName.getText()));
+		String msg1 = String.format("%,d matches for search pattern %s", fileMatchCount, txtFindFileName.getText());
+		scrollPaneCatalog.setColumnHeaderView(lblCatalogHeader);
+		lblCatalogHeader.setText(msg1);
+		log.infof("Find issued on directory %s , recursive %s :%n",lblFolder.getText(),rbRecurse.isSelected());
+		log.infof("\t%s%n",msg1);
 		txtCatalog.setCaretPosition(0);
 		btnPrintResult.setVisible(fileMatchCount == 0 ? false : true);
 
@@ -950,7 +948,6 @@ public class DiskUtility extends JDialog {
 				} else {
 					// skip
 				} // if recursive
-
 			} // for files
 		} catch (NullPointerException npe) {
 
@@ -1064,6 +1061,8 @@ public class DiskUtility extends JDialog {
 		catalogTableModel.clear();
 		catGetEntries(new File(lblFolder.getText()), catalogTableModel);
 		catalogTable.setModel(catalogTableModel);
+		log.infof("List issued on directory %s , recursive %s :%n",lblFolder.getText(),rbRecurse.isSelected());
+		log.infof("\t %,d Files listed%n",catalogTable.getRowCount());
 		btnPrintResult.setVisible(catalogTable.getRowCount() == 0 ? false : true);
 	}// doListFiles
 
@@ -1216,9 +1215,11 @@ public class DiskUtility extends JDialog {
 	private void appInit() {
 		
 		
-		StyledDocument doc = new DefaultStyledDocument();
+		StyledDocument styledDoc = textLog.getStyledDocument();
+		textLog.setFont(new Font("Arial", Font.PLAIN, 15));
 		AppLogger log = AppLogger.getInstance();
-		log.setDoc(doc);
+		log.setDoc(styledDoc);
+		log.setTextPane(textLog, "Disk Utility Log");
 
 
 		
@@ -1275,7 +1276,7 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		this.setTitle("DiskUtility - Stand alone   0.A");
+		this.setTitle("DiskUtility - Stand alone   1.0");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
@@ -2434,6 +2435,32 @@ public class DiskUtility extends JDialog {
 		lblCatalogHeader.setFont(new Font("Tahoma", Font.BOLD, 16));
 		lblCatalogHeader.setHorizontalAlignment(SwingConstants.CENTER);
 		scrollPaneCatalog.setColumnHeaderView(lblCatalogHeader);
+		
+		JPanel tabLog = new JPanel();
+		tabbedPane.addTab("Log", null, tabLog, null);
+		GridBagLayout gbl_tabLog = new GridBagLayout();
+		gbl_tabLog.columnWidths = new int[]{0, 0};
+		gbl_tabLog.rowHeights = new int[]{0, 0};
+		gbl_tabLog.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_tabLog.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		tabLog.setLayout(gbl_tabLog);
+		
+		JScrollPane scrollPane = new JScrollPane();
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 0;
+		gbc_scrollPane.gridy = 0;
+		tabLog.add(scrollPane, gbc_scrollPane);
+		
+		JLabel lblLog = new JLabel("Appication Log");
+		lblLog.setForeground(Color.BLUE);
+		lblLog.setFont(new Font("Arial", Font.BOLD, 18));
+		lblLog.setHorizontalAlignment(SwingConstants.CENTER);
+		scrollPane.setColumnHeaderView(lblLog);
+		
+		textLog = new JTextPane();
+		textLog.setEditable(false);
+		scrollPane.setViewportView(textLog);
 
 		txtCatalog = new JTextPane();
 		txtCatalog.setFont(new Font("Courier New", Font.PLAIN, 15));
@@ -2634,6 +2661,7 @@ public class DiskUtility extends JDialog {
 	private JTextField txtFindFileName;
 	private JTextPane txtCatalog;
 	private JLabel lblFileChangeIndicator;
+	private JTextPane textLog;
 	//////////////////////////////////////////////////////////////////////////
 
 	class AdapterForDiskUtility
