@@ -73,10 +73,10 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import hdNumberBox.HDNumberBox;
+import hdNumberBox.HDNumberValueChangeEvent;
+import hdNumberBox.HDNumberValueChangeListener;
 import hdNumberBox.HDSeekPanel;
-import hexEditPanel.HDNumberBox;
-import hexEditPanel.HDNumberValueChangeEvent;
-import hexEditPanel.HDNumberValueChangeListener;
 import hexEditPanel.HexEditDisplayPanel;
 import support.AppLogger;
 import support.CPMDirectory;
@@ -1956,7 +1956,7 @@ public class DiskUtility extends JDialog {
 
 		hdnSeekPanel = new HDSeekPanel();
 		hdnSeekPanel.setName(HDN_SEEK_PANEL);
-//		hdnSeekPanel.addHDNumberValueChangedListener(adapterForDiskUtility);
+		hdnSeekPanel.addHDNumberValueChangedListener( adapterForDiskUtility);
 		hdnSeekPanel.setPreferredSize(new Dimension(260, 30));
 		GridBagConstraints gbc_hdnSeekPanel = new GridBagConstraints();
 		gbc_hdnSeekPanel.fill = GridBagConstraints.VERTICAL;
@@ -2602,6 +2602,7 @@ public class DiskUtility extends JDialog {
 	private HDNumberBox hdnSector;
 	private HDNumberBox hdnTrack;
 	private HDSeekPanel hdnSeekPanel;
+	
 	private JLabel lblHeads;
 	private JLabel lblTracksPerHead;
 	private JLabel lblSectorsPerTrack;
