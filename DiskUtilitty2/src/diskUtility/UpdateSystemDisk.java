@@ -34,7 +34,8 @@ public class UpdateSystemDisk {
 			/** set up as system disk **/
 			Class<DiskUtility> thisClass = DiskUtility.class;
 //			String resourcesPathAlt = "/workingOS/";
-			String resourcesPath = "/Z80Code/";
+			String resourcesPath = "/";
+//			String resourcesPath = "/Z80Code/";
 			String BootSector = resourcesPath + "BootSector.mem";
 			String CCP = resourcesPath + "CCP.mem";
 			String BDOS = resourcesPath + "BDOS.mem";
@@ -43,6 +44,7 @@ public class UpdateSystemDisk {
 			// URL rom = thisClass.getResource("/disks/resources/BootSector.mem");
 			
 			InputStream in = thisClass.getClass().getResourceAsStream(BootSector);
+			log.infof("BootSector = %s%n", BootSector);
 			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
 			byte[] dataBoot = MemoryLoaderFromFile.loadMemoryImage(reader, 0x0200);
