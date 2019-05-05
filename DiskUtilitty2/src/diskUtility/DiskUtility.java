@@ -127,26 +127,19 @@ public class DiskUtility extends JDialog {
 	private static StyledDocument doc;
 
 	private AdapterForDiskUtility adapterForDiskUtility = new AdapterForDiskUtility();
-	
+
 	private HexEditDisplayPanel panelFileHex;
 	private HexEditDisplayPanel panelSectorDisplay;
 	private ArrayList<HDNumberBox> hdNumberBoxes = new ArrayList<HDNumberBox>();
 	
-	private static DiskUtility instance = new DiskUtility();
-
-	public static DiskUtility getInstance() {
-		return instance;
-	}// getInstance
-
+//	RawDiskDrive diskDriveProcess;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					
-					
-					
-					DiskUtility window = getInstance();
+					DiskUtility window = new DiskUtility();
+					// DiskUtility window = getInstance();
 					window.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -242,7 +235,6 @@ public class DiskUtility extends JDialog {
 				file.delete();
 			} catch (Exception e) {
 				log.errorf("Bad Delete %s%n", filePath);
-				// TODO: handle exception
 			} // try
 		} // if not null
 	}// removeAllTempFiles
@@ -633,7 +625,7 @@ public class DiskUtility extends JDialog {
 	}// doFileOpen
 
 	private void doDiskSave() {
-//		log.info("[HexEditor.doFileSave]");
+		// log.info("[HexEditor.doFileSave]");
 		if (sectorChanged == true) {
 			diskDrive.write(panelSectorDisplay.getData());
 		} // if changed data for last displayed sector
@@ -665,12 +657,12 @@ public class DiskUtility extends JDialog {
 			log.info("Bailed out of disk save");
 			return;
 		} // if - cancelled
-		
+
 		File rawTargetFile = fc.getSelectedFile();
 		String targetDirectory = rawTargetFile.getParent();
 		String targetFileName = rawTargetFile.getName();
 		targetFileName = cleanupFileName(targetFileName, ".F3HD");
-		
+
 		File targetFile = new File(targetDirectory + FILE_SEPARATOR + targetFileName);
 		// String sourceFileName = diskDrive.getFileAbsoluteName();
 		if (targetFile.exists()) {
@@ -926,37 +918,44 @@ public class DiskUtility extends JDialog {
 		clearCatalog(txtCatalog.getStyledDocument());
 		fileMatchCount = 0;
 		Pattern searchPattern = makePattern();
-		findFiles(new File(lblFolder.getText()), searchPattern);
+		findFiles(lblFolder.getText(), searchPattern);
+		// findFiles(new File(lblFolder.getText()), searchPattern);
 		String msg1 = String.format("%,d matches for search pattern %s", fileMatchCount, txtFindFileName.getText());
 		scrollPaneCatalog.setColumnHeaderView(lblCatalogHeader);
 		lblCatalogHeader.setText(msg1);
-		log.infof("Find issued on directory %s , recursive %s :%n",lblFolder.getText(),rbRecurse.isSelected());
-		log.infof("\t%s%n",msg1);
+		log.infof("Find issued on directory %s , recursive %s :%n", lblFolder.getText(), rbRecurse.isSelected());
+		log.infof("\t%s%n", msg1);
 		txtCatalog.setCaretPosition(0);
 		btnPrintResult.setVisible(fileMatchCount == 0 ? false : true);
 
 	}// doFindFiles
 
-	private void findFiles(File enterFile, Pattern p) {
-		File[] files = enterFile.listFiles();
+	private void findFiles(String target, Pattern p) {
+		File[] files = new File(target).listFiles();
 		try {
 			for (File file : files) {
+				String filePathString = file.getAbsolutePath().toUpperCase();
+
 				if (rbRecurse.isSelected() && file.isDirectory()) {
-					findFiles(file, p);
-				} else if (file.getName().toUpperCase().endsWith(PERIOD + lblDiskType.getText())) {
-					processTheFile(file, p);
+					findFiles(filePathString, p);
+				} else if (filePathString.endsWith(PERIOD + lblDiskType.getText())) {
+					processTheFile(filePathString, p);
 				} else {
 					// skip
 				} // if recursive
+				
+				file = null;
 			} // for files
 		} catch (NullPointerException npe) {
 
 		} // try
 	}// findFiles
 
-	private void processTheFile(File file, Pattern p) {
+	
+	private void processTheFile(String filePathString, Pattern p) {
 		StringBuilder result = new StringBuilder();
-		RawDiskDrive diskDrive = new RawDiskDrive(file.getAbsolutePath());
+//		 diskDriveProcess = new RawDiskDrive(filePathString);
+		RawDiskDrive diskDriveProcess = new RawDiskDrive(filePathString);
 		DiskMetrics diskMetrics = DiskMetrics.getDiskMetric(lblDiskType.getText());
 
 		byte[] diskSector;
@@ -966,8 +965,8 @@ public class DiskUtility extends JDialog {
 		int entriesPerSector = diskMetrics.bytesPerSector / Disk.DIRECTORY_ENTRY_SIZE;
 
 		for (int sector = firstDirectorySector; sector < lastDirectorySector + 1; sector++) {
-			diskDrive.setCurrentAbsoluteSector(sector);
-			diskSector = diskDrive.read();
+			diskDriveProcess.setCurrentAbsoluteSector(sector);
+			diskSector = diskDriveProcess.read();
 			for (int entry = 0; entry < entriesPerSector; entry++) {
 				String cpmFileName = extractName(diskSector, entry);
 				if (cpmFileName != null) {
@@ -979,16 +978,17 @@ public class DiskUtility extends JDialog {
 				} // if not null
 			} // for each entry
 		} // for each sector
+		diskDriveProcess.dismount();
 
 		if (result.length() > 0) {
 			try {
-				doc.insertString(doc.getLength(), String.format("%n\t\tDisk - %s:%n", file.getName()), attrTeal);
+				doc.insertString(doc.getLength(), String.format("%n\t\tDisk - %s:%n", filePathString), attrTeal);
 				doc.insertString(doc.getLength(), result.toString(), attrMaroon);
 			} catch (Exception e) {
-				log.error("Failed to update Catalog for disk: " + file.getName());
+				log.error("Failed to update Catalog for disk: " + filePathString);
 			} // try
 		} // if there are matches
-
+		
 	}// processTheFile
 
 	private String extractName(byte[] sector, int index) {
@@ -1061,8 +1061,8 @@ public class DiskUtility extends JDialog {
 		catalogTableModel.clear();
 		catGetEntries(new File(lblFolder.getText()), catalogTableModel);
 		catalogTable.setModel(catalogTableModel);
-		log.infof("List issued on directory %s , recursive %s :%n",lblFolder.getText(),rbRecurse.isSelected());
-		log.infof("\t %,d Files listed%n",catalogTable.getRowCount());
+		log.infof("List issued on directory %s , recursive %s :%n", lblFolder.getText(), rbRecurse.isSelected());
+		log.infof("\t %,d Files listed%n", catalogTable.getRowCount());
 		btnPrintResult.setVisible(catalogTable.getRowCount() == 0 ? false : true);
 	}// doListFiles
 
@@ -1130,7 +1130,7 @@ public class DiskUtility extends JDialog {
 		String disk = file.getName();
 		String location = file.getParent();
 
-		RawDiskDrive diskDrive = new RawDiskDrive(file.getAbsolutePath());
+		RawDiskDrive diskDriveCat = new RawDiskDrive(file.getAbsolutePath());
 		DiskMetrics diskMetrics = DiskMetrics.getDiskMetric(lblDiskType.getText());
 
 		byte[] diskSector;
@@ -1140,8 +1140,8 @@ public class DiskUtility extends JDialog {
 
 		String cpmFileName;
 		for (int sector = firstDirectorySector; sector < lastDirectorySector + 1; sector++) {
-			diskDrive.setCurrentAbsoluteSector(sector);
-			diskSector = diskDrive.read();
+			diskDriveCat.setCurrentAbsoluteSector(sector);
+			diskSector = diskDriveCat.read();
 			for (int entry = 0; entry < entriesPerSector; entry++) {
 				cpmFileName = extractName(diskSector, entry);
 				if (cpmFileName != null) {
@@ -1207,23 +1207,21 @@ public class DiskUtility extends JDialog {
 		myPrefs.put("CatalogFolder", lblFolder.getText());
 		myPrefs.put("FindFileName", txtFindFileName.getText());
 		myPrefs.putInt("Tab", tabbedPane.getSelectedIndex());
+		
+		myPrefs.putBoolean("rbRecurse", rbRecurse.isSelected());
 
 		myPrefs = null;
 		this.dispose();
 	}// appClose
 
 	private void appInit() {
-		
-		
+
 		StyledDocument styledDoc = textLog.getStyledDocument();
 		textLog.setFont(new Font("Arial", Font.PLAIN, 15));
 		AppLogger log = AppLogger.getInstance();
 		log.setDoc(styledDoc);
 		log.setTextPane(textLog, "Disk Utility Log");
 
-
-		
-		
 		Preferences myPrefs = Preferences.userNodeForPackage(DiskUtility.class).node(this.getClass().getSimpleName());
 		this.setSize(myPrefs.getInt("Width", 761), myPrefs.getInt("Height", 693));
 		this.setLocation(myPrefs.getInt("LocX", 100), myPrefs.getInt("LocY", 100));
@@ -1232,6 +1230,7 @@ public class DiskUtility extends JDialog {
 		lblFolder.setText(myPrefs.get("CatalogFolder", System.getProperty(USER_HOME, THIS_DIR)));
 		txtFindFileName.setText(myPrefs.get("FindFileName", "*.*"));
 		tabbedPane.setSelectedIndex(myPrefs.getInt("Tab", 0));
+		rbRecurse.setSelected(myPrefs.getBoolean("rbRecurse",false));
 		myPrefs = null;
 
 		removeAllWorkingDisks();
@@ -1239,7 +1238,7 @@ public class DiskUtility extends JDialog {
 		hdNumberBoxes.add(hdnHead);
 		hdNumberBoxes.add(hdnTrack);
 		hdNumberBoxes.add(hdnSector);
-//		hdNumberBoxes.add(hdnSeekPanel);
+		// hdNumberBoxes.add(hdnSeekPanel);
 
 		cbFileNames.setModel(fileCpmModel);
 		cbCPMFileInOut.setModel(fileCpmModel);
@@ -1280,15 +1279,15 @@ public class DiskUtility extends JDialog {
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent arg0) {
-				appClose();
-			}
+			 @Override
+			 public void windowClosing(WindowEvent arg0) {
+			 appClose();
+			 }
 
-			@Override
-			public void windowClosed(WindowEvent arg0) {
-				appClose();
-			}
+//			@Override
+//			public void windowClosed(WindowEvent arg0) {
+//				appClose();
+//			}
 		});
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 0, 0 };
@@ -1957,7 +1956,7 @@ public class DiskUtility extends JDialog {
 
 		hdnSeekPanel = new HDSeekPanel();
 		hdnSeekPanel.setName(HDN_SEEK_PANEL);
-		hdnSeekPanel.addHDNumberValueChangedListener( adapterForDiskUtility);
+		hdnSeekPanel.addHDNumberValueChangedListener(adapterForDiskUtility);
 		hdnSeekPanel.setPreferredSize(new Dimension(260, 30));
 		GridBagConstraints gbc_hdnSeekPanel = new GridBagConstraints();
 		gbc_hdnSeekPanel.fill = GridBagConstraints.VERTICAL;
@@ -2435,29 +2434,29 @@ public class DiskUtility extends JDialog {
 		lblCatalogHeader.setFont(new Font("Tahoma", Font.BOLD, 16));
 		lblCatalogHeader.setHorizontalAlignment(SwingConstants.CENTER);
 		scrollPaneCatalog.setColumnHeaderView(lblCatalogHeader);
-		
+
 		JPanel tabLog = new JPanel();
 		tabbedPane.addTab("Log", null, tabLog, null);
 		GridBagLayout gbl_tabLog = new GridBagLayout();
-		gbl_tabLog.columnWidths = new int[]{0, 0};
-		gbl_tabLog.rowHeights = new int[]{0, 0};
-		gbl_tabLog.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_tabLog.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_tabLog.columnWidths = new int[] { 0, 0 };
+		gbl_tabLog.rowHeights = new int[] { 0, 0 };
+		gbl_tabLog.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
+		gbl_tabLog.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		tabLog.setLayout(gbl_tabLog);
-		
+
 		JScrollPane scrollPane = new JScrollPane();
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane.gridx = 0;
 		gbc_scrollPane.gridy = 0;
 		tabLog.add(scrollPane, gbc_scrollPane);
-		
+
 		JLabel lblLog = new JLabel("Appication Log");
 		lblLog.setForeground(Color.BLUE);
 		lblLog.setFont(new Font("Arial", Font.BOLD, 18));
 		lblLog.setHorizontalAlignment(SwingConstants.CENTER);
 		scrollPane.setColumnHeaderView(lblLog);
-		
+
 		textLog = new JTextPane();
 		textLog.setEditable(false);
 		scrollPane.setViewportView(textLog);
@@ -2629,7 +2628,7 @@ public class DiskUtility extends JDialog {
 	private HDNumberBox hdnSector;
 	private HDNumberBox hdnTrack;
 	private HDSeekPanel hdnSeekPanel;
-	
+
 	private JLabel lblHeads;
 	private JLabel lblTracksPerHead;
 	private JLabel lblSectorsPerTrack;
@@ -2735,9 +2734,9 @@ public class DiskUtility extends JDialog {
 			}// switch
 		}// actionPerformed
 
-			// --------------------- HDNumberValueChangeListener
+		// --------------------- HDNumberValueChangeListener
 
-//		@Override
+		// @Override
 		public void valueChanged(HDNumberValueChangeEvent hDNumberValueChangeEvent) {
 			String name = ((Component) hDNumberValueChangeEvent.getSource()).getName();
 
@@ -2754,9 +2753,9 @@ public class DiskUtility extends JDialog {
 				log.warn("Unrecognized HDNumberValueChange change.");
 			}// switch
 		}// valueChanged
-		
+
 		// --------------------- ListSelectionListener
-//		@Override
+		// @Override
 		public void valueChanged(ListSelectionEvent listSelectionEvent) {
 			if (listSelectionEvent.getValueIsAdjusting()) {
 				return;

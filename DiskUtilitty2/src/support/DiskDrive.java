@@ -6,7 +6,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Path;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,7 +14,6 @@ import java.util.regex.Pattern;
 public class DiskDrive {
 
 	private String diskType;
-	// private boolean bootable;
 	protected int heads;
 	private int currentHead;
 	protected int tracksPerHead;
@@ -29,7 +27,6 @@ public class DiskDrive {
 	protected long totalBytesOnDisk;
 	private String fileAbsoluteName;
 	private String fileLocalName;
-//	public String description;
 
 	private FileChannel fileChannel;
 	private MappedByteBuffer disk;
@@ -40,30 +37,29 @@ public class DiskDrive {
 
 	private AppLogger log = AppLogger.getInstance();
 
-	public DiskDrive(Path path) {
-		this(path.toString());
-	}// Constructor
-
 	public DiskDrive(String strPathName, String sourceDiskPathName) {
 		resolveDiskType(sourceDiskPathName);
 		setupDisk(strPathName);
-
 	}// Constructor
 
 	public DiskDrive(String strPathName) {
 		resolveDiskType(strPathName);
 		setupDisk(strPathName);
 	}// Constructor
+	
+	public DiskDrive(String strPathName,boolean readOnly) {
+		resolveDiskType(strPathName);
+		setupDisk(strPathName);
+	}// Constructor
 
 	private void setupDisk(String strPathName) {
 		try {
-			File file = new File(strPathName);
-
-			raf = new RandomAccessFile(file, "rw");
+			raf = new RandomAccessFile(strPathName, "rw");
 			fileChannel = raf.getChannel();
 			disk = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, fileChannel.size());// total Bytes on disk
-			fileAbsoluteName = file.toString();
-			fileLocalName = file.getName();
+			fileAbsoluteName = strPathName;
+
+			fileLocalName = strPathName.substring(strPathName.lastIndexOf(File.separator)+1);
 
 		} catch (IOException ioException) {
 			log.error("[DiskDrive]: " + ERR_IO + ioException.getMessage());
@@ -92,22 +88,13 @@ public class DiskDrive {
 		this.sectorsPerHead = diskMetric.getTotalSectorsPerHead();
 		this.totalSectorsOnDisk = diskMetric.getTotalSectorsOnDisk();
 		this.totalBytesOnDisk = diskMetric.getTotalBytes();
-		// this.bootable = diskMetric.isBootDisk();
-//		this.description = diskMetric.descriptor;
 	}// resolveDiskType
 
 	// ---------------------------------------
 
 	public void dismount() {
-		try {
-			raf.close();
-			raf = null;
-		} catch (IOException ioe) {
-			log.warn("Failed Attempt to dismount diskDrive - " + ioe.getMessage());
-		} // try - RandomAccessFile
-
 		if (disk != null) {
-			disk.force(); // flush
+			disk.force(); // flush					
 			disk = null;
 		} // if - MappedByteBuffer
 
@@ -119,7 +106,14 @@ public class DiskDrive {
 			} // try - close
 			fileChannel = null;
 		} // if - FileChannel
-
+		
+		try {
+			raf.close();
+			raf = null;
+		} catch (IOException ioe) {
+			log.warn("Failed Attempt to dismount diskDrive - " + ioe.getMessage());
+		} // try - RandomAccessFile
+	
 	}// dismount
 
 	public byte[] read() {
@@ -132,8 +126,6 @@ public class DiskDrive {
 		setCurrentAbsoluteSector(currentAbsoluteSector + 1);
 		return read();
 	}// readNext
-
-
 
 	private void setSectorPosition() {
 		int offset = currentAbsoluteSector * bytesPerSector;
@@ -234,12 +226,6 @@ public class DiskDrive {
 			this.currentSector = currentSector;
 		} // if
 	}// setCurrentSector
-
-	// public boolean setCurrentAbsoluteSector(int head, int track, int sector) {
-	// boolean result = false;
-	//
-	// return result;
-	// }//setCurrentAbsoluteSector
 
 	private boolean validateAbsoluteSector(int absoluteSector) {
 		// between 0 and totalSectorsOnDisk - 1
@@ -343,8 +329,6 @@ public class DiskDrive {
 	private static final String ERR_HEAD = "Invalid Head";
 	private static final String ERR_SECTOR = "Invalid Sector";
 	private static final String ERR_ABSOLUTE_SECTOR = "Invalid Absolute Sector";
-	// private static final String ERR_DISK = "Invalid Disk - ";
-	// private static final String ERR_SECTOR_SIZE = "Write buffer size does not match disk sector size";
 	private static final String ERR_IO = "Physical I/O Error - ";
 
 }// class DiskDrive

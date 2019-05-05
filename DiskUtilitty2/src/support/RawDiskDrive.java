@@ -1,12 +1,10 @@
 package support;
 
-import java.nio.file.Path;
-
 public class RawDiskDrive extends DiskDrive {
 
-	public RawDiskDrive(Path path) {
-		super(path);
-	}//Constructor
+//	public RawDiskDrive(Path path) {
+//		super(path);
+//	}//Constructor
 
 	public RawDiskDrive(String strPathName) {
 		super(strPathName);
