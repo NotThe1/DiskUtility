@@ -33,7 +33,7 @@ public class UpdateSystemDisk {
 
 			/** set up as system disk **/
 			Class<DiskUtility> thisClass = DiskUtility.class;
-//			String resourcesPathAlt = "/workingOS/";
+//			String resourcesPath = "/workingOS/";
 			String resourcesPath = "/";
 //			String resourcesPath = "/Z80Code/";
 			String BootSector = resourcesPath + "BootSector.mem";
