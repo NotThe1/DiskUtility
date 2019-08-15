@@ -1,79 +1,23 @@
 package diskUtility;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Scanner;
 
 import javax.swing.JFileChooser;
 
 import support.AppLogger;
 import support.DiskMetrics;
 import support.FilePicker;
-import support.MemoryLoaderFromFile;
 
 public class UpdateSystemDisk {
-	
+
 	static AppLogger log = AppLogger.getInstance();
-
-	public static void updateDisk(File selectedFile) {
-		String fileExtension = "F3HD";
-		DiskMetrics diskMetric = DiskMetrics.getDiskMetric(fileExtension);
-		if (diskMetric == null) {
-			System.err.printf("Bad disk type: %s%n", fileExtension);
-			return;
-		} // if diskMetric
-
-		try (FileChannel fileChannel = new RandomAccessFile(selectedFile, "rw").getChannel();) {
-			MappedByteBuffer disk = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, diskMetric.getTotalBytes());
-
-			/** set up as system disk **/
-			Class<DiskUtility> thisClass = DiskUtility.class;
-//			String resourcesPath = "/workingOS/";
-			String resourcesPath = "/";
-//			String resourcesPath = "/Z80Code/";
-			String BootSector = resourcesPath + "BootSector.mem";
-			String CCP = resourcesPath + "CCP.mem";
-			String BDOS = resourcesPath + "BDOS.mem";
-			String BIOS = resourcesPath + "BIOS.mem";
-			/* Boot Sector */
-			// URL rom = thisClass.getResource("/disks/resources/BootSector.mem");
-			
-			InputStream in = thisClass.getClass().getResourceAsStream(BootSector);
-			log.infof("BootSector = %s%n", BootSector);
-			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-
-			byte[] dataBoot = MemoryLoaderFromFile.loadMemoryImage(reader, 0x0200);
-			disk.position(0);
-			disk.put(dataBoot);
-
-			in = thisClass.getClass().getResourceAsStream(CCP);
-			reader = new BufferedReader(new InputStreamReader(in));
-			byte[] dataCCP = MemoryLoaderFromFile.loadMemoryImage(reader, 0x0800);
-			disk.put(dataCCP);
-
-			in = thisClass.getClass().getResourceAsStream(BDOS);
-			reader = new BufferedReader(new InputStreamReader(in));
-			byte[] dataBDOS = MemoryLoaderFromFile.loadMemoryImage(reader, 0x0E00);
-			disk.put(dataBDOS);
-
-			in = thisClass.getClass().getResourceAsStream(BIOS);
-			reader = new BufferedReader(new InputStreamReader(in));
-			byte[] dataBIOS = MemoryLoaderFromFile.loadMemoryImage(reader, 0x0A00);
-			disk.put(dataBIOS);
-
-			fileChannel.force(true);
-			fileChannel.close();
-			disk = null;
-		} catch (IOException e) {
-			e.printStackTrace();
-		} // try
-	}
-
+	
 	public static void updateDisk(String diskPath) {
 
 		File selectedFile = new File(diskPath);
@@ -84,7 +28,6 @@ public class UpdateSystemDisk {
 
 		updateDisk(selectedFile);
 		log.info("Updated System on " + selectedFile.toString());
-
 	}// updateDisk
 
 	public static void updateDisks() {
@@ -97,8 +40,63 @@ public class UpdateSystemDisk {
 		for (File file : files) {
 			updateDisk(file);
 			log.info("Updated System on " + file.toString());
-		}//for 
-
+		} // for
 	}// updateDisks
+
+
+	public static void updateDisk(File selectedFile) {
+		String fileExtension = "F3HD";
+		DiskMetrics diskMetric = DiskMetrics.getDiskMetric(fileExtension);
+		if (diskMetric == null) {
+			System.err.printf("Bad disk type: %s%n", fileExtension);
+			return;
+		} // if diskMetric
+
+		try (FileChannel fileChannel = new RandomAccessFile(selectedFile, "rw").getChannel();) {
+			MappedByteBuffer disk = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, diskMetric.getTotalBytes());
+			String resourcesPath = "/";
+
+			int[] sizes = new int[] { 0x200, 0x0800, 0x0E00, 0x0A00 };
+			String[] fileNames = new String[] { resourcesPath + "BootSector.mem", resourcesPath + "CCP.mem",
+					resourcesPath + "BDOS.mem", resourcesPath + "BIOS.mem" };
+
+			/** set up as system disk **/
+			Class<DiskUtility> thisClass = DiskUtility.class;
+
+			InputStream in;
+			disk.position(0);
+			int byteIndex;
+			String strAddress;
+			Scanner scanner;
+			for (int fileIndex = 0; fileIndex < fileNames.length; fileIndex++) {
+				in = thisClass.getClass().getResourceAsStream(fileNames[fileIndex]);
+				scanner = new Scanner(in);
+				byte[] dataRead = new byte[sizes[fileIndex]];
+				byteIndex = 0;
+				
+				while(scanner.hasNextLine()) {
+					strAddress = scanner.next();
+					strAddress = strAddress.replace(":", "");
+					
+					for ( int lineIndex = 0; lineIndex <SIXTEEN;lineIndex++) {
+						dataRead[byteIndex++] = (byte)((int) Integer.valueOf(scanner.next(),16));
+					}//for
+					
+					scanner.nextLine();							
+				}//while
+				
+				scanner.close();				
+				disk.put(dataRead);
+			} // for
+
+			fileChannel.force(true);
+			fileChannel.close();
+			disk = null;
+		} catch (IOException e) {
+			e.printStackTrace();
+		} // try
+	}//updateDisk
+
+	private final static int SIXTEEN = 16;
 
 }// class UpdateSystemDisk
