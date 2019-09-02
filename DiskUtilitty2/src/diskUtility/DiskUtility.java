@@ -1275,7 +1275,7 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		this.setTitle("DiskUtility - Stand alone   1.3");
+		this.setTitle("DiskUtility - Stand alone   U19 1.3");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
