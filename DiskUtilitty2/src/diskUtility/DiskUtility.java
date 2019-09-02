@@ -1275,7 +1275,7 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		this.setTitle("DiskUtility - Stand alone   1.2");
+		this.setTitle("DiskUtility - Stand alone   1.3");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
@@ -1774,9 +1774,9 @@ public class DiskUtility extends JDialog {
 		gbc_panelFileDislay.gridy = 1;
 		tabFile.add(panelFileDislay, gbc_panelFileDislay);
 		GridBagLayout gbl_panelFileDislay = new GridBagLayout();
-		gbl_panelFileDislay.columnWidths = new int[] { 0, 779, 0 };
+		gbl_panelFileDislay.columnWidths = new int[] {0, 0, 0};
 		gbl_panelFileDislay.rowHeights = new int[] { 0, 0 };
-		gbl_panelFileDislay.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_panelFileDislay.columnWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
 		gbl_panelFileDislay.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
 		panelFileDislay.setLayout(gbl_panelFileDislay);
 
@@ -1789,7 +1789,7 @@ public class DiskUtility extends JDialog {
 
 		panelFileHex = new HexEditDisplayPanel();
 		GridBagConstraints gbc_panelFileHex = new GridBagConstraints();
-		gbc_panelFileHex.fill = GridBagConstraints.VERTICAL;
+		gbc_panelFileHex.fill = GridBagConstraints.BOTH;
 		gbc_panelFileHex.gridx = 1;
 		gbc_panelFileHex.gridy = 0;
 		panelFileDislay.add(panelFileHex, gbc_panelFileHex);
@@ -1922,7 +1922,7 @@ public class DiskUtility extends JDialog {
 		GridBagLayout gbl_panelPhysicalDisplay = new GridBagLayout();
 		gbl_panelPhysicalDisplay.columnWidths = new int[] { 0, 0, 0 };
 		gbl_panelPhysicalDisplay.rowHeights = new int[] { 0, 0, 0 };
-		gbl_panelPhysicalDisplay.columnWeights = new double[] { 0.0, 0.0, Double.MIN_VALUE };
+		gbl_panelPhysicalDisplay.columnWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
 		gbl_panelPhysicalDisplay.rowWeights = new double[] { 1.0, 0.0, Double.MIN_VALUE };
 		panelPhysicalDisplay.setLayout(gbl_panelPhysicalDisplay);
 

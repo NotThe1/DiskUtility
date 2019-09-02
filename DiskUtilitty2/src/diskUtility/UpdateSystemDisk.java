@@ -48,28 +48,32 @@ public class UpdateSystemDisk {
 		String fileExtension = "F3HD";
 		DiskMetrics diskMetric = DiskMetrics.getDiskMetric(fileExtension);
 		if (diskMetric == null) {
-			System.err.printf("Bad disk type: %s%n", fileExtension);
+			log.errorf("Bad disk type: %s%n", fileExtension);
 			return;
 		} // if diskMetric
 
-		try (FileChannel fileChannel = new RandomAccessFile(selectedFile, "rw").getChannel();) {
-			MappedByteBuffer disk = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, diskMetric.getTotalBytes());
-			String resourcesPath = "/";
+		String resourcesPath = "/";
+		 resourcesPath = "";
 
 			int[] sizes = new int[] { 0x200, 0x0800, 0x0E00, 0x0A00 };
 			String[] fileNames = new String[] { resourcesPath + "BootSector.mem", resourcesPath + "CCP.mem",
 					resourcesPath + "BDOS.mem", resourcesPath + "BIOS.mem" };
-
-			/** set up as system disk **/
+//			Class<UpdateSystemDisk> thisClass = UpdateSystemDisk.class;
 			Class<DiskUtility> thisClass = DiskUtility.class;
+			int fileIndex = 0;
+		try (FileChannel fileChannel = new RandomAccessFile(selectedFile, "rw").getChannel();) {
+			MappedByteBuffer disk = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, diskMetric.getTotalBytes());
+			/** set up as system disk **/
 
 			InputStream in;
 			disk.position(0);
 			int byteIndex;
 			String strAddress;
 			Scanner scanner;
-			for (int fileIndex = 0; fileIndex < fileNames.length; fileIndex++) {
-				in = thisClass.getClass().getResourceAsStream(fileNames[fileIndex]);
+			for (fileIndex = 0; fileIndex < fileNames.length; fileIndex++) {
+//				 in = this.getClass().getResourceAsStream(fileNames[fileIndex]);
+//*				in = thisClass.getClass().getResourceAsStream(fileNames[fileIndex]);
+				in = thisClass.getClassLoader().getResourceAsStream(fileNames[fileIndex]);
 				scanner = new Scanner(in);
 				byte[] dataRead = new byte[sizes[fileIndex]];
 				byteIndex = 0;
@@ -88,14 +92,15 @@ public class UpdateSystemDisk {
 				scanner.close();				
 				disk.put(dataRead);
 			} // for
-
 			fileChannel.force(true);
 			fileChannel.close();
 			disk = null;
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (  NullPointerException | IOException npe) {//IOException
+			log.errorf("[UpdateSystemDisk.updateDisk]  Failed to load file: %s%n", fileNames[fileIndex]);
+			npe.printStackTrace();
 		} // try
 	}//updateDisk
+	
 
 	private final static int SIXTEEN = 16;
 
