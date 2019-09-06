@@ -560,6 +560,7 @@ public class DiskUtility extends JDialog {
 	private void updateFile() {
 		System.out.println("DiskUtility.updateFile()");
 		lblFileChangeIndicator.setVisible(true);
+		fileChanged = true;
 		// lblActiveDisk.setForeground(Color.RED);
 
 	}// updateFile
@@ -605,13 +606,19 @@ public class DiskUtility extends JDialog {
 			int result = JOptionPane.showConfirmDialog(this, message, "Disk Utility: Close Disk",
 					JOptionPane.YES_NO_CANCEL_OPTION);
 			if (result == JOptionPane.CANCEL_OPTION) {
+				log.info("Cancelled Disk Close");
 				return;// cancel result
 			} else if (result == JOptionPane.YES_OPTION) {
+				if(fileChanged &!sectorChanged) {
+					cpmFile.write(panelFileHex.getData());
+				}//if change only to open file
 				doDiskSave();
 			} else if (result == JOptionPane.NO_OPTION) {
+				log.info("Closed disk without saving changes");
 				/* do nothing special */
 			} // if answer
 		} // if change to file data
+		
 		lblFileChangeIndicator.setVisible(false);
 		if (diskDrive != null) {
 			diskDrive.dismount();
@@ -1275,19 +1282,14 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		this.setTitle("DiskUtility - Stand alone   U19 1.3");
+		this.setTitle("DiskUtility - Stand alone   1.5");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
 			 @Override
 			 public void windowClosing(WindowEvent arg0) {
 			 appClose();
-			 }
-
-//			@Override
-//			public void windowClosed(WindowEvent arg0) {
-//				appClose();
-//			}
+			 }//windowClosing
 		});
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 0, 0 };
