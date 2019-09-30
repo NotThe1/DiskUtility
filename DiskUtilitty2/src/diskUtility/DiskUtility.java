@@ -119,6 +119,7 @@ public class DiskUtility extends JDialog {
 	private byte[] diskSector;
 
 	private String hostDirectory;
+	private File[] hostFiles;
 
 	private int fileMatchCount;
 
@@ -131,8 +132,10 @@ public class DiskUtility extends JDialog {
 	private HexEditDisplayPanel panelFileHex;
 	private HexEditDisplayPanel panelSectorDisplay;
 	private ArrayList<HDNumberBox> hdNumberBoxes = new ArrayList<HDNumberBox>();
-	
-//	RawDiskDrive diskDriveProcess;
+
+	public HFS hostFileSelection;
+
+	// RawDiskDrive diskDriveProcess;
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -213,7 +216,8 @@ public class DiskUtility extends JDialog {
 		File result = null;
 		try {
 			result = File.createTempFile(TEMP_PREFIX, TEMP_SUFFIX);
-			// log.addInfo("[HexEditor.makeWorkingFile] Working file = " + result.getAbsolutePath());
+			// log.addInfo("[HexEditor.makeWorkingFile] Working file = " +
+			// result.getAbsolutePath());
 		} catch (IOException e) {
 			log.errorf("Failed to make WorkingDisk: %s", e.getMessage());
 			e.printStackTrace();
@@ -609,16 +613,16 @@ public class DiskUtility extends JDialog {
 				log.info("Cancelled Disk Close");
 				return;// cancel result
 			} else if (result == JOptionPane.YES_OPTION) {
-				if(fileChanged &!sectorChanged) {
+				if (fileChanged & !sectorChanged) {
 					cpmFile.write(panelFileHex.getData());
-				}//if change only to open file
+				} // if change only to open file
 				doDiskSave();
 			} else if (result == JOptionPane.NO_OPTION) {
 				log.info("Closed disk without saving changes");
 				/* do nothing special */
 			} // if answer
 		} // if change to file data
-		
+
 		lblFileChangeIndicator.setVisible(false);
 		if (diskDrive != null) {
 			diskDrive.dismount();
@@ -771,30 +775,105 @@ public class DiskUtility extends JDialog {
 
 	private void doGetHostFile() {
 		JFileChooser nativeChooser = new JFileChooser(hostDirectory);
-		nativeChooser.setMultiSelectionEnabled(false);
-
+		nativeChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		nativeChooser.setMultiSelectionEnabled(true);
+		String note = "Host Section Type";
 		if (nativeChooser.showDialog(this, "Select the file") != JFileChooser.APPROVE_OPTION) {
 			btnImport.setEnabled(false);
 			btnExport.setEnabled(false);
 			txtHostFileInOut.setText(EMPTY_STRING);
 			txtHostFileInOut.setToolTipText(EMPTY_STRING);
+			hostFiles = null;
+			hostFileSelection = HFS.NONE;
 		} else {
-			hostFile = nativeChooser.getSelectedFile();
-			btnImport.setEnabled(true);
-			btnExport.setEnabled(true);
+			hostFiles = nativeChooser.getSelectedFiles();
+			hostDirectory = hostFiles[0].getParent();
+			int filesSelected = hostFiles.length;
+			if (filesSelected == 1) {
+				if (hostFiles[0].isDirectory()) {
+					System.out.printf("[DiskUtility.doGetHostFile] %s%n", "Directory selected");
+					btnExport.setEnabled(true);
+					btnImport.setEnabled(false);
+					cbCPMFileInOut.setEnabled(true);
+					note = String.format("Folder selected", filesSelected);
+					hostFileSelection = HFS.DIR;
+				} // directory
+				else {
+					System.out.printf("[DiskUtility.doGetHostFile] %s%n", "single file selected");
+					btnExport.setEnabled(true);
+					btnImport.setEnabled(true);
+					cbCPMFileInOut.setEnabled(true);
+					note = String.format("%d files selected", filesSelected);
+					hostFileSelection = HFS.SINGLE;
+				} // File
+			} else {
+				System.out.printf("[DiskUtility.doGetHostFile] %s%n", "Multi File selection");
+				btnExport.setEnabled(false);
+				btnImport.setEnabled(true);
+				cbCPMFileInOut.setEnabled(false);
+				note = String.format("%d files selected", filesSelected);
+				hostFileSelection = HFS.MULTI;
+			} // multiple file selection
+				// cbCPMFileInOut.setEnabled(true);
 
-			hostDirectory = hostFile.getParent();
-			txtHostFileInOut.setText(hostFile.getName());
-			txtHostFileInOut.setToolTipText(hostFile.getAbsolutePath());
+			// btnImport.setEnabled(true);
+			// btnExport.setEnabled(true);
+			//
+			// hostDirectory = hostFile.getParent();
+			lblNote.setText(note);
+			txtHostFileInOut.setText(hostFiles[0].getName());
+			txtHostFileInOut.setToolTipText(hostFiles[0].getAbsolutePath());
 		} // if file not chosen
 	}// doGetHostFile
 
-	private void doExport() {
+//	private void doBulkExport() {
+//
+//	}// doBulkExport
 
-		if (cbCPMFileInOut.getItemCount() == 0) {
+	private void doExport() {
+		int cpmFileCount = fileCpmModel.getSize();
+		if (cpmFileCount == 0) {
 			return;
 		} // if empty list
-		String hostFilePath = hostFile.getAbsolutePath();
+		String cpmFileName = ((String) cbCPMFileInOut.getSelectedItem()).trim();
+		String hostFile = txtHostFileInOut.getToolTipText();
+		switch (hostFileSelection) {
+		case MULTI:
+			Toolkit.getDefaultToolkit().beep();
+			log.warnf("Cannot Export - Multi Host files selected%n", "");
+			break;
+		case SINGLE:
+			if (cpmFileName.contains("*") || cpmFileName.contains("?")) {
+				Toolkit.getDefaultToolkit().beep();
+				log.warnf("Cannot Export - Single Host files selected:\t\t%s %n\t\t cpmFile has wildCards: \t%s%n",
+						hostFile, cpmFileName);
+			} else {
+				doExport(cpmFileName, hostFile);
+				log.infof("Export %s to %s%n", cpmFileName, hostFile);
+			} // if
+			break;
+		case DIR:
+			Pattern searchPattern = makePattern(cpmFileName);
+
+			String candidateOriginal, candidate;
+			for (int i = 0; i < cpmFileCount; i++) {
+				candidateOriginal = fileCpmModel.getElementAt(i);
+				candidate = makePatternString(candidateOriginal);
+				Matcher m = searchPattern.matcher(candidate);
+				if (m.matches()) {
+					String target = hostFile + FILE_SEPARATOR + candidateOriginal;
+					doExport(candidateOriginal, target);
+					log.infof("Export %s to %s%n", candidateOriginal, target);
+				} // if
+			} // for
+
+			break;
+		case NONE:
+		}// switch
+
+	}// doExport
+
+	private void doExport(String cpmFileName, String hostFilePath) {
 
 		if (new File(hostFilePath).exists()) {
 			if (JOptionPane.showConfirmDialog((Component) this, "Host File Exits, Do you want to overwrite?",
@@ -804,7 +883,6 @@ public class DiskUtility extends JDialog {
 			} // if
 		} // if file exists
 
-		String cpmFileName = (String) cbCPMFileInOut.getSelectedItem();
 		cpmFile = CPMFile.getCPMFile(diskDrive, directory, cpmFileName);
 
 		ByteArrayInputStream bis = new ByteArrayInputStream(cpmFile.readNet());
@@ -843,8 +921,8 @@ public class DiskUtility extends JDialog {
 		} // if delete
 
 		/*
-		 * We have all the pieces needed to actually move the file. We need to get a directory entry and some storage
-		 * for the file
+		 * We have all the pieces needed to actually move the file. We need to get a
+		 * directory entry and some storage for the file
 		 */
 
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -867,18 +945,6 @@ public class DiskUtility extends JDialog {
 			}
 		});
 		displayDirectoryView();
-
-		// javax.swing.SwingUtilities.invokeLater(new Runnable() {
-		// public void run() {
-		// displayDirectoryView();
-		// }
-		// });
-
-		// String diskName = diskDrive.getFileAbsoluteName();
-		// doDiskClose();
-		// diskSetup(diskName);
-		// manageFileMenus(MNU_DISK_LOAD);
-		// need the two display methods run on separate threads
 
 	}// doImport
 
@@ -924,7 +990,8 @@ public class DiskUtility extends JDialog {
 		setAttributes();
 		clearCatalog(txtCatalog.getStyledDocument());
 		fileMatchCount = 0;
-		Pattern searchPattern = makePattern();
+		Pattern searchPattern = makePattern(txtFindFileName.getText().trim());
+
 		findFiles(lblFolder.getText(), searchPattern);
 		// findFiles(new File(lblFolder.getText()), searchPattern);
 		String msg1 = String.format("%,d matches for search pattern %s", fileMatchCount, txtFindFileName.getText());
@@ -950,7 +1017,7 @@ public class DiskUtility extends JDialog {
 				} else {
 					// skip
 				} // if recursive
-				
+
 				file = null;
 			} // for files
 		} catch (NullPointerException npe) {
@@ -958,10 +1025,9 @@ public class DiskUtility extends JDialog {
 		} // try
 	}// findFiles
 
-	
 	private void processTheFile(String filePathString, Pattern p) {
 		StringBuilder result = new StringBuilder();
-//		 diskDriveProcess = new RawDiskDrive(filePathString);
+		// diskDriveProcess = new RawDiskDrive(filePathString);
 		RawDiskDrive diskDriveProcess = new RawDiskDrive(filePathString);
 		DiskMetrics diskMetrics = DiskMetrics.getDiskMetric(lblDiskType.getText());
 
@@ -995,7 +1061,7 @@ public class DiskUtility extends JDialog {
 				log.error("Failed to update Catalog for disk: " + filePathString);
 			} // try
 		} // if there are matches
-		
+
 	}// processTheFile
 
 	private String extractName(byte[] sector, int index) {
@@ -1073,9 +1139,24 @@ public class DiskUtility extends JDialog {
 		btnPrintResult.setVisible(catalogTable.getRowCount() == 0 ? false : true);
 	}// doListFiles
 
-	private Pattern makePattern() {
+	private Pattern makePattern(String sourceFileName) {
+		// String name, ext;
+		// if (sourceFileName.contains(PERIOD)) {
+		// String[] targetSet = sourceFileName.split("\\.");
+		// name = targetSet[0];
+		// ext = targetSet[1];
+		// } else {
+		// name = sourceFileName;
+		// ext = SPACE_3; // three spaces
+		// } // if period in name
+		//
+		// String patternStr = getPattern(name, 8) + getPattern(ext, 3);
+		return Pattern.compile("(?i)" + makePatternString(sourceFileName));
+	}// makePattern
+
+	private String makePatternString(String sourceFileName) {
+
 		String name, ext;
-		String sourceFileName = txtFindFileName.getText().trim();
 		if (sourceFileName.contains(PERIOD)) {
 			String[] targetSet = sourceFileName.split("\\.");
 			name = targetSet[0];
@@ -1085,9 +1166,9 @@ public class DiskUtility extends JDialog {
 			ext = SPACE_3; // three spaces
 		} // if period in name
 
-		String patternStr = getPattern(name, 8) + getPattern(ext, 3);
-		return Pattern.compile(patternStr);
-	}// makePattern
+		return getPattern(name, 8) + getPattern(ext, 3);
+
+	}// makePatternString
 
 	private String getPattern(String s, int size) {
 		StringBuilder sb = new StringBuilder();
@@ -1214,7 +1295,7 @@ public class DiskUtility extends JDialog {
 		myPrefs.put("CatalogFolder", lblFolder.getText());
 		myPrefs.put("FindFileName", txtFindFileName.getText());
 		myPrefs.putInt("Tab", tabbedPane.getSelectedIndex());
-		
+
 		myPrefs.putBoolean("rbRecurse", rbRecurse.isSelected());
 
 		myPrefs = null;
@@ -1237,7 +1318,7 @@ public class DiskUtility extends JDialog {
 		lblFolder.setText(myPrefs.get("CatalogFolder", System.getProperty(USER_HOME, THIS_DIR)));
 		txtFindFileName.setText(myPrefs.get("FindFileName", "*.*"));
 		tabbedPane.setSelectedIndex(myPrefs.getInt("Tab", 0));
-		rbRecurse.setSelected(myPrefs.getBoolean("rbRecurse",false));
+		rbRecurse.setSelected(myPrefs.getBoolean("rbRecurse", false));
 		myPrefs = null;
 
 		removeAllWorkingDisks();
@@ -1249,6 +1330,7 @@ public class DiskUtility extends JDialog {
 
 		cbFileNames.setModel(fileCpmModel);
 		cbCPMFileInOut.setModel(fileCpmModel);
+		cbCPMFileInOut.setEnabled(false);
 		directoryTable.setModel(directoryTableModel);
 		dirAdjustTableLook(directoryTable);
 
@@ -1266,7 +1348,7 @@ public class DiskUtility extends JDialog {
 		panelFileHex.setName(HEDP_FILE);
 		panelSectorDisplay.addChangeListener(adapterForDiskUtility);
 		panelSectorDisplay.setName(HEDP_SECTOR);
-
+		hostFileSelection = HFS.NONE;
 	}// appInit
 
 	/**
@@ -1286,10 +1368,10 @@ public class DiskUtility extends JDialog {
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
-			 @Override
-			 public void windowClosing(WindowEvent arg0) {
-			 appClose();
-			 }//windowClosing
+			@Override
+			public void windowClosing(WindowEvent arg0) {
+				appClose();
+			}// windowClosing
 		});
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 0, 0 };
@@ -1776,7 +1858,7 @@ public class DiskUtility extends JDialog {
 		gbc_panelFileDislay.gridy = 1;
 		tabFile.add(panelFileDislay, gbc_panelFileDislay);
 		GridBagLayout gbl_panelFileDislay = new GridBagLayout();
-		gbl_panelFileDislay.columnWidths = new int[] {0, 0, 0};
+		gbl_panelFileDislay.columnWidths = new int[] { 0, 0, 0 };
 		gbl_panelFileDislay.rowHeights = new int[] { 0, 0 };
 		gbl_panelFileDislay.columnWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
 		gbl_panelFileDislay.rowWeights = new double[] { 1.0, Double.MIN_VALUE };
@@ -1976,10 +2058,17 @@ public class DiskUtility extends JDialog {
 		tabbedPane.addTab("Import/Export", null, tabImport, null);
 		GridBagLayout gbl_tabImport = new GridBagLayout();
 		gbl_tabImport.columnWidths = new int[] { 0, 0 };
-		gbl_tabImport.rowHeights = new int[] { 0, 0, 0 };
+		gbl_tabImport.rowHeights = new int[] { 0, 0, 0, 0, 0 };
 		gbl_tabImport.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_tabImport.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
+		gbl_tabImport.rowWeights = new double[] { 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
 		tabImport.setLayout(gbl_tabImport);
+
+		Component verticalStrut = Box.createVerticalStrut(20);
+		GridBagConstraints gbc_verticalStrut = new GridBagConstraints();
+		gbc_verticalStrut.insets = new Insets(0, 0, 5, 0);
+		gbc_verticalStrut.gridx = 0;
+		gbc_verticalStrut.gridy = 0;
+		tabImport.add(verticalStrut, gbc_verticalStrut);
 
 		JPanel panelMetrics = new JPanel();
 		panelMetrics.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -1987,7 +2076,7 @@ public class DiskUtility extends JDialog {
 		gbc_panelMetrics.insets = new Insets(0, 0, 5, 0);
 		gbc_panelMetrics.fill = GridBagConstraints.BOTH;
 		gbc_panelMetrics.gridx = 0;
-		gbc_panelMetrics.gridy = 0;
+		gbc_panelMetrics.gridy = 1;
 		tabImport.add(panelMetrics, gbc_panelMetrics);
 		GridBagLayout gbl_panelMetrics = new GridBagLayout();
 		gbl_panelMetrics.columnWidths = new int[] { 0, 0 };
@@ -2212,24 +2301,32 @@ public class DiskUtility extends JDialog {
 		gbc_label23.gridy = 3;
 		panelFileSystemParameters.add(label23, gbc_label23);
 
+		Component verticalStrut_1 = Box.createVerticalStrut(20);
+		GridBagConstraints gbc_verticalStrut_1 = new GridBagConstraints();
+		gbc_verticalStrut_1.insets = new Insets(0, 0, 5, 0);
+		gbc_verticalStrut_1.gridx = 0;
+		gbc_verticalStrut_1.gridy = 2;
+		tabImport.add(verticalStrut_1, gbc_verticalStrut_1);
+
 		JPanel panelImportExport = new JPanel();
 		panelImportExport.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		GridBagConstraints gbc_panelImportExport = new GridBagConstraints();
 		gbc_panelImportExport.fill = GridBagConstraints.BOTH;
 		gbc_panelImportExport.gridx = 0;
-		gbc_panelImportExport.gridy = 1;
+		gbc_panelImportExport.gridy = 3;
 		tabImport.add(panelImportExport, gbc_panelImportExport);
 		GridBagLayout gbl_panelImportExport = new GridBagLayout();
 		gbl_panelImportExport.columnWidths = new int[] { 0, 0 };
-		gbl_panelImportExport.rowHeights = new int[] { 0, 0 };
+		gbl_panelImportExport.rowHeights = new int[] { 0, 0, 0, 0 };
 		gbl_panelImportExport.columnWeights = new double[] { 1.0, Double.MIN_VALUE };
-		gbl_panelImportExport.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
+		gbl_panelImportExport.rowWeights = new double[] { 0.0, 0.0, 1.0, Double.MIN_VALUE };
 		panelImportExport.setLayout(gbl_panelImportExport);
 
 		JPanel panelImportExport0 = new JPanel();
 		panelImportExport0.setBorder(new TitledBorder(new LineBorder(new Color(0, 0, 0), 1, true),
 				"Import / Export Files", TitledBorder.CENTER, TitledBorder.ABOVE_TOP, null, null));
 		GridBagConstraints gbc_panelImportExport0 = new GridBagConstraints();
+		gbc_panelImportExport0.insets = new Insets(0, 0, 5, 0);
 		gbc_panelImportExport0.anchor = GridBagConstraints.NORTH;
 		gbc_panelImportExport0.fill = GridBagConstraints.HORIZONTAL;
 		gbc_panelImportExport0.gridx = 0;
@@ -2237,9 +2334,9 @@ public class DiskUtility extends JDialog {
 		panelImportExport.add(panelImportExport0, gbc_panelImportExport0);
 		GridBagLayout gbl_panelImportExport0 = new GridBagLayout();
 		gbl_panelImportExport0.columnWidths = new int[] { 0, 0, 0, 0, 0 };
-		gbl_panelImportExport0.rowHeights = new int[] { 0, 0, 0, 0, 0, 0 };
+		gbl_panelImportExport0.rowHeights = new int[] { 0, 0, 0, 0, 0, 0, 0 };
 		gbl_panelImportExport0.columnWeights = new double[] { 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE };
-		gbl_panelImportExport0.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		gbl_panelImportExport0.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		panelImportExport0.setLayout(gbl_panelImportExport0);
 
 		JLabel label24 = new JLabel("Host File: ");
@@ -2271,12 +2368,28 @@ public class DiskUtility extends JDialog {
 		panelImportExport0.add(txtHostFileInOut, gbc_txtHostFileInOut);
 		txtHostFileInOut.setColumns(10);
 
+		Component verticalStrut_3 = Box.createVerticalStrut(20);
+		GridBagConstraints gbc_verticalStrut_3 = new GridBagConstraints();
+		gbc_verticalStrut_3.insets = new Insets(0, 0, 5, 5);
+		gbc_verticalStrut_3.gridx = 1;
+		gbc_verticalStrut_3.gridy = 2;
+		panelImportExport0.add(verticalStrut_3, gbc_verticalStrut_3);
+
+		lblNote = new JLabel("Host File Selection Type");
+		lblNote.setVerticalAlignment(SwingConstants.TOP);
+		GridBagConstraints gbc_lblNote = new GridBagConstraints();
+		gbc_lblNote.anchor = GridBagConstraints.SOUTHWEST;
+		gbc_lblNote.insets = new Insets(0, 0, 5, 0);
+		gbc_lblNote.gridx = 3;
+		gbc_lblNote.gridy = 2;
+		panelImportExport0.add(lblNote, gbc_lblNote);
+
 		JLabel lblFile = new JLabel("CPM File: ");
 		GridBagConstraints gbc_lblFile = new GridBagConstraints();
 		gbc_lblFile.insets = new Insets(0, 0, 5, 5);
 		gbc_lblFile.anchor = GridBagConstraints.EAST;
 		gbc_lblFile.gridx = 1;
-		gbc_lblFile.gridy = 2;
+		gbc_lblFile.gridy = 3;
 		panelImportExport0.add(lblFile, gbc_lblFile);
 
 		cbCPMFileInOut = new JComboBox<String>();
@@ -2291,7 +2404,7 @@ public class DiskUtility extends JDialog {
 		gbc_cbCPMFileInOut.anchor = GridBagConstraints.WEST;
 		gbc_cbCPMFileInOut.insets = new Insets(0, 0, 5, 0);
 		gbc_cbCPMFileInOut.gridx = 3;
-		gbc_cbCPMFileInOut.gridy = 2;
+		gbc_cbCPMFileInOut.gridy = 3;
 		panelImportExport0.add(cbCPMFileInOut, gbc_cbCPMFileInOut);
 
 		btnExport = new JButton("Export To Host File");
@@ -2301,7 +2414,7 @@ public class DiskUtility extends JDialog {
 		gbc_btnExport.fill = GridBagConstraints.HORIZONTAL;
 		gbc_btnExport.insets = new Insets(0, 0, 5, 5);
 		gbc_btnExport.gridx = 1;
-		gbc_btnExport.gridy = 3;
+		gbc_btnExport.gridy = 4;
 		panelImportExport0.add(btnExport, gbc_btnExport);
 
 		btnImport = new JButton("Import FromHost File");
@@ -2311,8 +2424,19 @@ public class DiskUtility extends JDialog {
 		gbc_btnImport.fill = GridBagConstraints.HORIZONTAL;
 		gbc_btnImport.insets = new Insets(0, 0, 0, 5);
 		gbc_btnImport.gridx = 1;
-		gbc_btnImport.gridy = 4;
+		gbc_btnImport.gridy = 5;
 		panelImportExport0.add(btnImport, gbc_btnImport);
+
+		Component verticalStrut_2 = Box.createVerticalStrut(20);
+		GridBagConstraints gbc_verticalStrut_2 = new GridBagConstraints();
+		gbc_verticalStrut_2.insets = new Insets(0, 0, 5, 0);
+		gbc_verticalStrut_2.gridx = 0;
+		gbc_verticalStrut_2.gridy = 1;
+		panelImportExport.add(verticalStrut_2, gbc_verticalStrut_2);
+		GridBagConstraints gbc_btnBulkExport = new GridBagConstraints();
+		gbc_btnBulkExport.insets = new Insets(0, 0, 5, 0);
+		gbc_btnBulkExport.gridx = 1;
+		gbc_btnBulkExport.gridy = 4;
 
 		JPanel tabCatalog = new JPanel();
 		tabbedPane.addTab("Catalog", null, tabCatalog, null);
@@ -2595,6 +2719,8 @@ public class DiskUtility extends JDialog {
 	public static final String HDN_SECTOR = "hdnSector";
 	public static final String HDN_SEEK_PANEL = "seekPanel";
 
+//	public static final String BTN_BULK_IMPORT = "btnBulkImport";
+//	public static final String BTN_BULK_EXPORT = "btnBulkExport";
 	public static final String BTN_IMPORT = "btnImport";
 	public static final String BTN_EXPORT = "btnExport";
 	public static final String BTN_HOST_FILE = "btnHostFile";
@@ -2663,6 +2789,7 @@ public class DiskUtility extends JDialog {
 	private JTextPane txtCatalog;
 	private JLabel lblFileChangeIndicator;
 	private JTextPane textLog;
+	private JLabel lblNote;
 	//////////////////////////////////////////////////////////////////////////
 
 	class AdapterForDiskUtility
@@ -2706,6 +2833,14 @@ public class DiskUtility extends JDialog {
 			case BTN_IMPORT:
 				doImport();
 				break;
+
+//			case BTN_BULK_EXPORT:
+//				doBulkExport();
+//				break;
+//
+//			case BTN_BULK_IMPORT:
+//				doBulkImport();
+//				break;
 
 			case CB_FILE_NAMES:
 				displaySelectedFile();
@@ -2812,5 +2947,9 @@ public class DiskUtility extends JDialog {
 		}// verify
 
 	}// FileNameVerifier
+
+	public enum HFS {
+		DIR, SINGLE, MULTI, NONE
+	}// HostFileSelection
 
 }// class GUItemplate
