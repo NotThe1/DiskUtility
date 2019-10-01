@@ -101,7 +101,7 @@ public class DiskUtility extends JDialog {
 	private RawDiskDrive diskDrive;
 	private DiskMetrics diskMetrics;
 
-	private File hostFile;
+//	private File hostFile;
 	private DefaultComboBoxModel<String> fileCpmModel = new DefaultComboBoxModel<String>();
 	private DirectoryTableModel directoryTableModel = new DirectoryTableModel();
 	private CPMDirectory directory;
@@ -396,7 +396,7 @@ public class DiskUtility extends JDialog {
 			lblRecordCount.setText("0");
 			lblReadOnly.setVisible(false);
 			lblSystemFile.setVisible(false);
-			hostFile = null;
+//			hostFile = null;
 			txtHostFileInOut.setText(EMPTY_STRING);
 			txtHostFileInOut.setToolTipText(EMPTY_STRING);
 			cbFileNames.setSelectedIndex(-1);
@@ -826,9 +826,9 @@ public class DiskUtility extends JDialog {
 		} // if file not chosen
 	}// doGetHostFile
 
-//	private void doBulkExport() {
-//
-//	}// doBulkExport
+	// private void doBulkExport() {
+	//
+	// }// doBulkExport
 
 	private void doExport() {
 		int cpmFileCount = fileCpmModel.getSize();
@@ -895,16 +895,68 @@ public class DiskUtility extends JDialog {
 		} // try
 
 	}// doExport
+	
+	private String hostToCPMFileName(File hostFile) {
+		String result[] = hostFile.getName().split("\\.");
+		String ans = "";
+		int nameSize = result[0].length();
+		
+		if (result.length <=1) { // no Period // Ext
+			if (nameSize <= 8) {
+				ans = result[0];
+			}else {
+				ans = String.format("%.8s.%.3s",
+						result[0],(result[0] + "   ").substring(8,10));
+			}//inner if
+			
+		}else{// Period and EXT
+			ans = String.format("%.8s.%.3s", result[0],result[1]);
+		}// outer if
+		
+		return ans.toUpperCase();
+		
+	}//hostToCPMFileName
 
 	private void doImport() {
-		System.out.println("DiskUtility.()");
+		String cpmFileName;// = ((String) cbCPMFileInOut.getSelectedItem()).trim();
+
+		switch (hostFileSelection) {
+		case MULTI:
+			for(File file:hostFiles) {
+				cpmFileName = hostToCPMFileName(file);
+				log.infof("Host name: %s, \t\tcpmName: %s%n",file.getName(),cpmFileName);
+				doImport1(cpmFileName, file);
+			}// for File
+			break;
+		case SINGLE:
+			cpmFileName = ((String) cbCPMFileInOut.getSelectedItem()).trim().toUpperCase();
+			if (cpmFileName.contains("*") || cpmFileName.contains("?")) {
+				Toolkit.getDefaultToolkit().beep();
+				log.warnf("Cannot Import - Single Host file selected:\t\t%s %n\t\t cpmFile has wildCards: \t%s%n",
+						hostFiles[0], cpmFileName);
+			} else {
+				doImport1(cpmFileName, hostFiles[0]);
+				log.infof("Export %s to %s%n", cpmFileName, hostFiles[0]);
+			} // if
+			break;		
+		case DIR:
+			Toolkit.getDefaultToolkit().beep();
+			log.warnf("Cannot Import - Host Folder selected%n", "");
+			break;
+		case NONE:
+			// ignore
+		}// switch
+	}// doImport
+
+	private void doImport1(String cpmFileName,File hostFile) {
+		// System.out.println("DiskUtility.()");
 
 		boolean deleteFile = false;
-		String cpmFileName = (String) cbCPMFileInOut.getSelectedItem();
+//		String cpmFileName = (String) cbCPMFileInOut.getSelectedItem();
 
 		if (fileCpmModel.getIndexOf(cpmFileName) != -1) {
 			if (JOptionPane.showConfirmDialog((Component) this, "File Exits, Do you want to overwrite?",
-					"Copying a Native File to a CPM file", JOptionPane.YES_NO_OPTION,
+					"Copying a Host File to a CPM file", JOptionPane.YES_NO_OPTION,
 					JOptionPane.WARNING_MESSAGE) == JOptionPane.NO_OPTION) {
 				return;
 			} // if
@@ -937,7 +989,10 @@ public class DiskUtility extends JDialog {
 
 		CPMFile newCPMFile = CPMFile.createCPMFile(diskDrive, directory, cpmFileName);
 		newCPMFile.writeNewFile(dataToWrite);
-
+		
+		setDataChange(true);
+		lblActiveDisk.setForeground(Color.RED);
+		
 		// need the two display methods run on separate threads
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -2719,8 +2774,8 @@ public class DiskUtility extends JDialog {
 	public static final String HDN_SECTOR = "hdnSector";
 	public static final String HDN_SEEK_PANEL = "seekPanel";
 
-//	public static final String BTN_BULK_IMPORT = "btnBulkImport";
-//	public static final String BTN_BULK_EXPORT = "btnBulkExport";
+	// public static final String BTN_BULK_IMPORT = "btnBulkImport";
+	// public static final String BTN_BULK_EXPORT = "btnBulkExport";
 	public static final String BTN_IMPORT = "btnImport";
 	public static final String BTN_EXPORT = "btnExport";
 	public static final String BTN_HOST_FILE = "btnHostFile";
@@ -2834,13 +2889,13 @@ public class DiskUtility extends JDialog {
 				doImport();
 				break;
 
-//			case BTN_BULK_EXPORT:
-//				doBulkExport();
-//				break;
-//
-//			case BTN_BULK_IMPORT:
-//				doBulkImport();
-//				break;
+			// case BTN_BULK_EXPORT:
+			// doBulkExport();
+			// break;
+			//
+			// case BTN_BULK_IMPORT:
+			// doBulkImport();
+			// break;
 
 			case CB_FILE_NAMES:
 				displaySelectedFile();
