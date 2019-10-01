@@ -1,6 +1,5 @@
 package diskUtility;
 
-// 1959 //		hdnSeekPanel.addHDNumberValueChangedListener(adapterForDiskUtility);
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -101,7 +100,6 @@ public class DiskUtility extends JDialog {
 	private RawDiskDrive diskDrive;
 	private DiskMetrics diskMetrics;
 
-//	private File hostFile;
 	private DefaultComboBoxModel<String> fileCpmModel = new DefaultComboBoxModel<String>();
 	private DirectoryTableModel directoryTableModel = new DirectoryTableModel();
 	private CPMDirectory directory;
@@ -135,8 +133,6 @@ public class DiskUtility extends JDialog {
 
 	public HFS hostFileSelection;
 
-	// RawDiskDrive diskDriveProcess;
-
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -163,21 +159,14 @@ public class DiskUtility extends JDialog {
 
 	// ---------------------------------------------------------
 
-	// public void closeFile() {
-	// workingDisk = null;
-	// // hexEditDisplay.clear();
-	// }// closeFile
-
 	private void setActiveFileInfo(File currentActiveFile) {
 		activeDiskAbsolutePath = currentActiveFile.getAbsolutePath();
 		// activeDiskPath = currentActiveFile.getParent();
 		activeDiskName = currentActiveFile.getName();
-
 	}// setActiveFileInfo
 
 	private void loadDisk(File subjectDisk) {
 		workingDisk = null;
-		// closeFile();
 
 		long fileLength = subjectDisk.length();
 		if (fileLength >= Integer.MAX_VALUE) {
@@ -216,8 +205,6 @@ public class DiskUtility extends JDialog {
 		File result = null;
 		try {
 			result = File.createTempFile(TEMP_PREFIX, TEMP_SUFFIX);
-			// log.addInfo("[HexEditor.makeWorkingFile] Working file = " +
-			// result.getAbsolutePath());
 		} catch (IOException e) {
 			log.errorf("Failed to make WorkingDisk: %s", e.getMessage());
 			e.printStackTrace();
@@ -266,9 +253,8 @@ public class DiskUtility extends JDialog {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				displayPhysicalSector(0); // Physical View
-			}
+			}// run
 		});
-
 		displayDirectoryView(); // Directory View
 	}// diskSetup
 
@@ -278,9 +264,6 @@ public class DiskUtility extends JDialog {
 	}// displayDirectoryView
 
 	private void dirAdjustTableLook(JTable table) {
-		// Font realColumnFont = table.getFont();
-		// int charWidth = table.getFontMetrics(realColumnFont).getWidths()[0X57];
-
 		int charWidth = table.getFontMetrics(table.getFont()).charWidth('W');
 
 		TableColumnModel tableColumn = table.getColumnModel();
@@ -343,7 +326,6 @@ public class DiskUtility extends JDialog {
 			directoryTableModel.addRow(directoryIndex, directoryEntry);
 			if ((!directoryEntry.isEmpty()) && directoryEntry.getActualExtentNumber() == 0) {
 				fileCpmModel.addElement(directoryEntry.getNameAndTypePeriod());
-				// log.addInfo(directoryEntry.getNameAndTypePeriod());
 			} // if
 		} // for each directory entry
 		showDirectoryDetail(0);
@@ -389,21 +371,17 @@ public class DiskUtility extends JDialog {
 			directoryTableModel.clear();
 			showDirectoryDetail(new byte[32]);
 
-			// panelFileHex.loadData(NO_ACTIVE_FILE.getBytes());
 			panelFileHex.setData(NO_ACTIVE_FILE.getBytes());
 			panelFileHex.run();
 			fileCpmModel.removeAllElements();
 			lblRecordCount.setText("0");
 			lblReadOnly.setVisible(false);
 			lblSystemFile.setVisible(false);
-//			hostFile = null;
 			txtHostFileInOut.setText(EMPTY_STRING);
 			txtHostFileInOut.setToolTipText(EMPTY_STRING);
 			cbFileNames.setSelectedIndex(-1);
 			cbCPMFileInOut.setSelectedIndex(-1);
-
 		} // if - state is false
-
 	}// haveDisk
 
 	private void showDirectoryDetail(int entryNumber) {
@@ -437,7 +415,7 @@ public class DiskUtility extends JDialog {
 		// Modified original .. if(diskMetrics!= null......
 		if (diskMetrics != null) {
 			diskMetrics = null;
-		} //
+		} // if
 
 		diskMetrics = state ? DiskMetrics.getDiskMetric(diskDrive.getDiskType()) : null;
 
@@ -565,20 +543,16 @@ public class DiskUtility extends JDialog {
 		System.out.println("DiskUtility.updateFile()");
 		lblFileChangeIndicator.setVisible(true);
 		fileChanged = true;
-		// lblActiveDisk.setForeground(Color.RED);
-
 	}// updateFile
 
 	private void updateSector() {
 		System.out.println("DiskUtility.updateSector()");
 		sectorChanged = true;
 		lblActiveDisk.setForeground(Color.RED);
-
 	}// updateSector
 
 	private void doDiskLoad() {
 		JFileChooser fc = FilePicker.getDisk();
-		// JFileChooser fc = FilePicker.getDiskPicker();
 		if (fc.showOpenDialog(this) == JFileChooser.CANCEL_OPTION) {
 			log.info("Bailed out of disk open");
 			return;
@@ -590,17 +564,7 @@ public class DiskUtility extends JDialog {
 		} // if - is it there
 
 		loadDisk(fc.getSelectedFile());
-
-		// diskSetup(absoluteFilePath);
-		// manageFileMenus(MNU_DISK_LOAD);
-
 	}// doFileNew
-
-	// private int checkForDataChange() {
-	// int result = JOptionPane.NO_OPTION;
-	//
-	// return result;
-	// }// checkForDataChange
 
 	private void doDiskClose() {
 		if (fileChanged | sectorChanged) {
@@ -636,13 +600,11 @@ public class DiskUtility extends JDialog {
 	}// doFileOpen
 
 	private void doDiskSave() {
-		// log.info("[HexEditor.doFileSave]");
 		if (sectorChanged == true) {
 			diskDrive.write(panelSectorDisplay.getData());
 		} // if changed data for last displayed sector
 		Path originalPath = Paths.get(activeDiskAbsolutePath);
 		Path workingPath = Paths.get(workingDisk.getAbsolutePath());
-		// doDiskSave(originalPath,workingPath);
 		log.infof("Working disk is: %s%n", workingPath);
 		try {
 			Files.copy(workingPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
@@ -675,7 +637,6 @@ public class DiskUtility extends JDialog {
 		targetFileName = cleanupFileName(targetFileName, ".F3HD");
 
 		File targetFile = new File(targetDirectory + FILE_SEPARATOR + targetFileName);
-		// String sourceFileName = diskDrive.getFileAbsoluteName();
 		if (targetFile.exists()) {
 			if (JOptionPane.showConfirmDialog(null, "File Exits, Do you want to overwrite?", "Disk Save As...",
 					JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.NO_OPTION) {
@@ -795,7 +756,7 @@ public class DiskUtility extends JDialog {
 					btnExport.setEnabled(true);
 					btnImport.setEnabled(false);
 					cbCPMFileInOut.setEnabled(true);
-					note = String.format("Folder selected", filesSelected);
+					note = "Folder selected";
 					hostFileSelection = HFS.DIR;
 				} // directory
 				else {
@@ -814,21 +775,12 @@ public class DiskUtility extends JDialog {
 				note = String.format("%d files selected", filesSelected);
 				hostFileSelection = HFS.MULTI;
 			} // multiple file selection
-				// cbCPMFileInOut.setEnabled(true);
 
-			// btnImport.setEnabled(true);
-			// btnExport.setEnabled(true);
-			//
-			// hostDirectory = hostFile.getParent();
 			lblNote.setText(note);
 			txtHostFileInOut.setText(hostFiles[0].getName());
 			txtHostFileInOut.setToolTipText(hostFiles[0].getAbsolutePath());
 		} // if file not chosen
 	}// doGetHostFile
-
-	// private void doBulkExport() {
-	//
-	// }// doBulkExport
 
 	private void doExport() {
 		int cpmFileCount = fileCpmModel.getSize();
@@ -866,15 +818,15 @@ public class DiskUtility extends JDialog {
 					log.infof("Export %s to %s%n", candidateOriginal, target);
 				} // if
 			} // for
-
 			break;
 		case NONE:
+		default:
+			// ignore
+			break;
 		}// switch
-
 	}// doExport
 
 	private void doExport(String cpmFileName, String hostFilePath) {
-
 		if (new File(hostFilePath).exists()) {
 			if (JOptionPane.showConfirmDialog((Component) this, "Host File Exits, Do you want to overwrite?",
 					"Copying a CPM file to a Native File ", JOptionPane.YES_NO_OPTION,
@@ -893,40 +845,36 @@ public class DiskUtility extends JDialog {
 			String message = String.format("Exported %s to %s", cpmFileName, hostFilePath);
 			log.info(message);
 		} // try
-
 	}// doExport
-	
+
 	private String hostToCPMFileName(File hostFile) {
 		String result[] = hostFile.getName().split("\\.");
 		String ans = "";
 		int nameSize = result[0].length();
-		
-		if (result.length <=1) { // no Period // Ext
+
+		if (result.length <= 1) { // no Period // Ext
 			if (nameSize <= 8) {
 				ans = result[0];
-			}else {
-				ans = String.format("%.8s.%.3s",
-						result[0],(result[0] + "   ").substring(8,10));
-			}//inner if
-			
-		}else{// Period and EXT
-			ans = String.format("%.8s.%.3s", result[0],result[1]);
-		}// outer if
-		
+			} else {
+				ans = String.format("%.8s.%.3s", result[0], (result[0] + "   ").substring(8, 10));
+			} // inner if
+
+		} else {// Period and EXT
+			ans = String.format("%.8s.%.3s", result[0], result[1]);
+		} // outer if
 		return ans.toUpperCase();
-		
-	}//hostToCPMFileName
+	}// hostToCPMFileName
 
 	private void doImport() {
 		String cpmFileName;// = ((String) cbCPMFileInOut.getSelectedItem()).trim();
 
 		switch (hostFileSelection) {
 		case MULTI:
-			for(File file:hostFiles) {
+			for (File file : hostFiles) {
 				cpmFileName = hostToCPMFileName(file);
-				log.infof("Host name: %s, \t\tcpmName: %s%n",file.getName(),cpmFileName);
-				doImport1(cpmFileName, file);
-			}// for File
+				log.infof("Host name: %s, \t\tcpmName: %s%n", file.getName(), cpmFileName);
+				doImport(cpmFileName, file);
+			} // for File
 			break;
 		case SINGLE:
 			cpmFileName = ((String) cbCPMFileInOut.getSelectedItem()).trim().toUpperCase();
@@ -935,25 +883,23 @@ public class DiskUtility extends JDialog {
 				log.warnf("Cannot Import - Single Host file selected:\t\t%s %n\t\t cpmFile has wildCards: \t%s%n",
 						hostFiles[0], cpmFileName);
 			} else {
-				doImport1(cpmFileName, hostFiles[0]);
+				doImport(cpmFileName, hostFiles[0]);
 				log.infof("Export %s to %s%n", cpmFileName, hostFiles[0]);
 			} // if
-			break;		
+			break;
 		case DIR:
 			Toolkit.getDefaultToolkit().beep();
 			log.warnf("Cannot Import - Host Folder selected%n", "");
 			break;
 		case NONE:
+		default:
 			// ignore
+			break;
 		}// switch
 	}// doImport
 
-	private void doImport1(String cpmFileName,File hostFile) {
-		// System.out.println("DiskUtility.()");
-
+	private void doImport(String cpmFileName, File hostFile) {
 		boolean deleteFile = false;
-//		String cpmFileName = (String) cbCPMFileInOut.getSelectedItem();
-
 		if (fileCpmModel.getIndexOf(cpmFileName) != -1) {
 			if (JOptionPane.showConfirmDialog((Component) this, "File Exits, Do you want to overwrite?",
 					"Copying a Host File to a CPM file", JOptionPane.YES_NO_OPTION,
@@ -989,10 +935,10 @@ public class DiskUtility extends JDialog {
 
 		CPMFile newCPMFile = CPMFile.createCPMFile(diskDrive, directory, cpmFileName);
 		newCPMFile.writeNewFile(dataToWrite);
-		
+
 		setDataChange(true);
 		lblActiveDisk.setForeground(Color.RED);
-		
+
 		// need the two display methods run on separate threads
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -1195,22 +1141,10 @@ public class DiskUtility extends JDialog {
 	}// doListFiles
 
 	private Pattern makePattern(String sourceFileName) {
-		// String name, ext;
-		// if (sourceFileName.contains(PERIOD)) {
-		// String[] targetSet = sourceFileName.split("\\.");
-		// name = targetSet[0];
-		// ext = targetSet[1];
-		// } else {
-		// name = sourceFileName;
-		// ext = SPACE_3; // three spaces
-		// } // if period in name
-		//
-		// String patternStr = getPattern(name, 8) + getPattern(ext, 3);
 		return Pattern.compile("(?i)" + makePatternString(sourceFileName));
 	}// makePattern
 
 	private String makePatternString(String sourceFileName) {
-
 		String name, ext;
 		if (sourceFileName.contains(PERIOD)) {
 			String[] targetSet = sourceFileName.split("\\.");
@@ -1220,9 +1154,7 @@ public class DiskUtility extends JDialog {
 			name = sourceFileName;
 			ext = SPACE_3; // three spaces
 		} // if period in name
-
 		return getPattern(name, 8) + getPattern(ext, 3);
-
 	}// makePatternString
 
 	private String getPattern(String s, int size) {
