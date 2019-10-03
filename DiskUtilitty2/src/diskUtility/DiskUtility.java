@@ -577,7 +577,8 @@ public class DiskUtility extends JDialog {
 				log.info("Cancelled Disk Close");
 				return;// cancel result
 			} else if (result == JOptionPane.YES_OPTION) {
-				if (fileChanged & !sectorChanged) {
+				// if (fileChanged & !sectorChanged) {
+				if (fileChanged) {
 					cpmFile.write(panelFileHex.getData());
 				} // if change only to open file
 				doDiskSave();
@@ -692,7 +693,7 @@ public class DiskUtility extends JDialog {
 				lblFileChangeIndicator.setVisible(true);
 				cpmFile.write(panelFileHex.getData());
 			} else if (result == JOptionPane.NO_OPTION) {
-				/* do nothing special */
+				fileChanged = false;
 			} // if answer
 		} // if change to file data
 		lblFileChangeIndicator.setVisible(false);
@@ -936,7 +937,7 @@ public class DiskUtility extends JDialog {
 		CPMFile newCPMFile = CPMFile.createCPMFile(diskDrive, directory, cpmFileName);
 		newCPMFile.writeNewFile(dataToWrite);
 
-		setDataChange(true);
+		fileChanged = true;
 		lblActiveDisk.setForeground(Color.RED);
 
 		// need the two display methods run on separate threads
@@ -1351,7 +1352,7 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		this.setTitle("DiskUtility - Stand alone   2.0");
+		this.setTitle("DiskUtility - Stand alone   2.1");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
