@@ -1,5 +1,8 @@
 package diskUtility;
 
+/*
+ * 2019-12-03  Auto load of CMP file name after selecting single host
+ */
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -755,18 +758,23 @@ public class DiskUtility extends JDialog {
 				if (hostFiles[0].isDirectory()) {
 					System.out.printf("[DiskUtility.doGetHostFile] %s%n", "Directory selected");
 					btnExport.setEnabled(true);
-					btnImport.setEnabled(false);
+					btnImport.setEnabled(false);					
 					cbCPMFileInOut.setEnabled(true);
 					note = "Folder selected";
 					hostFileSelection = HFS.DIR;
 				} // directory
 				else {
+					String fileName = (hostFiles[0].getName()).toUpperCase();
+					cbCPMFileInOut.setSelectedItem(fileName);
+
 					System.out.printf("[DiskUtility.doGetHostFile] %s%n", "single file selected");
 					btnExport.setEnabled(true);
 					btnImport.setEnabled(true);
 					cbCPMFileInOut.setEnabled(true);
 					note = String.format("%d files selected", filesSelected);
 					hostFileSelection = HFS.SINGLE;
+					
+
 				} // File
 			} else {
 				System.out.printf("[DiskUtility.doGetHostFile] %s%n", "Multi File selection");
@@ -902,7 +910,8 @@ public class DiskUtility extends JDialog {
 	private void doImport(String cpmFileName, File hostFile) {
 		boolean deleteFile = false;
 		if (fileCpmModel.getIndexOf(cpmFileName) != -1) {
-			if (JOptionPane.showConfirmDialog((Component) this, "File Exits, Do you want to overwrite?",
+			String msg = String.format("%s Exists%nDo you want to overwrite?", cpmFileName);//"File Exits, Do you want to overwrite?"
+			if (JOptionPane.showConfirmDialog((Component) this,msg ,
 					"Copying a Host File to a CPM file", JOptionPane.YES_NO_OPTION,
 					JOptionPane.WARNING_MESSAGE) == JOptionPane.NO_OPTION) {
 				return;
@@ -1352,7 +1361,7 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		this.setTitle("DiskUtility - Stand alone   2.1");
+		this.setTitle("DiskUtility - Stand alone   2.2");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
