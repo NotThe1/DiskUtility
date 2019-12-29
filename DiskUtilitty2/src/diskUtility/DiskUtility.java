@@ -1,5 +1,6 @@
 package diskUtility;
 
+import java.awt.AWTException;
 /*
  * 2019-12-03  Auto load of CMP file name after selecting single host
  */
@@ -13,9 +14,12 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.Point;
+import java.awt.Robot;
 import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.print.PrinterException;
@@ -556,10 +560,12 @@ public class DiskUtility extends JDialog {
 
 	private void doDiskLoad() {
 		JFileChooser fc = FilePicker.getDisk();
+
 		if (fc.showOpenDialog(this) == JFileChooser.CANCEL_OPTION) {
 			log.info("Bailed out of disk open");
 			return;
 		} // if - cancelled
+
 		String absoluteFilePath = fc.getSelectedFile().getAbsolutePath();
 		if (!fc.getSelectedFile().exists()) {
 			log.errorf("%s Does Not Exist", absoluteFilePath);
@@ -758,7 +764,7 @@ public class DiskUtility extends JDialog {
 				if (hostFiles[0].isDirectory()) {
 					System.out.printf("[DiskUtility.doGetHostFile] %s%n", "Directory selected");
 					btnExport.setEnabled(true);
-					btnImport.setEnabled(false);					
+					btnImport.setEnabled(false);
 					cbCPMFileInOut.setEnabled(true);
 					note = "Folder selected";
 					hostFileSelection = HFS.DIR;
@@ -773,7 +779,6 @@ public class DiskUtility extends JDialog {
 					cbCPMFileInOut.setEnabled(true);
 					note = String.format("%d files selected", filesSelected);
 					hostFileSelection = HFS.SINGLE;
-					
 
 				} // File
 			} else {
@@ -910,10 +915,10 @@ public class DiskUtility extends JDialog {
 	private void doImport(String cpmFileName, File hostFile) {
 		boolean deleteFile = false;
 		if (fileCpmModel.getIndexOf(cpmFileName) != -1) {
-			String msg = String.format("%s Exists%nDo you want to overwrite?", cpmFileName);//"File Exits, Do you want to overwrite?"
-			if (JOptionPane.showConfirmDialog((Component) this,msg ,
-					"Copying a Host File to a CPM file", JOptionPane.YES_NO_OPTION,
-					JOptionPane.WARNING_MESSAGE) == JOptionPane.NO_OPTION) {
+			String msg = String.format("%s Exists%nDo you want to overwrite?", cpmFileName);// "File Exits, Do you want
+																							// to overwrite?"
+			if (JOptionPane.showConfirmDialog((Component) this, msg, "Copying a Host File to a CPM file",
+					JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.NO_OPTION) {
 				return;
 			} // if
 			deleteFile = true;
@@ -1150,6 +1155,11 @@ public class DiskUtility extends JDialog {
 		btnPrintResult.setVisible(catalogTable.getRowCount() == 0 ? false : true);
 	}// doListFiles
 
+	private void doLoadLastFile() {
+		Thread t = new Thread(new AutoLoad());
+		t.start();
+	}// doLoadLastFile
+
 	private Pattern makePattern(String sourceFileName) {
 		return Pattern.compile("(?i)" + makePatternString(sourceFileName));
 	}// makePattern
@@ -1288,6 +1298,7 @@ public class DiskUtility extends JDialog {
 		myPrefs.putInt("LocX", point.x);
 		myPrefs.putInt("LocY", point.y);
 
+		myPrefs.put("LastDisk", activeDiskAbsolutePath);
 		myPrefs.put("HostDirectory", hostDirectory);
 		myPrefs.put("CatalogFolder", lblFolder.getText());
 		myPrefs.put("FindFileName", txtFindFileName.getText());
@@ -1311,6 +1322,9 @@ public class DiskUtility extends JDialog {
 		this.setSize(myPrefs.getInt("Width", 761), myPrefs.getInt("Height", 693));
 		this.setLocation(myPrefs.getInt("LocX", 100), myPrefs.getInt("LocY", 100));
 
+		// myPrefs.put("LastDisk", activeDiskAbsolutePath);
+		activeDiskAbsolutePath = myPrefs.get("LastDisk", "C:\\");
+		System.out.printf("[DiskUtility.appInit] %s%n", activeDiskAbsolutePath);
 		hostDirectory = myPrefs.get("HostDirectory", System.getProperty(USER_HOME, THIS_DIR));
 		lblFolder.setText(myPrefs.get("CatalogFolder", System.getProperty(USER_HOME, THIS_DIR)));
 		txtFindFileName.setText(myPrefs.get("FindFileName", "*.*"));
@@ -1361,7 +1375,7 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		this.setTitle("DiskUtility - Stand alone   2.3");
+		this.setTitle("DiskUtility - Stand alone   3.0");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addWindowListener(new WindowAdapter() {
@@ -1399,6 +1413,12 @@ public class DiskUtility extends JDialog {
 		gbc_toolBar.gridx = 1;
 		gbc_toolBar.gridy = 0;
 		topPanel.add(toolBar, gbc_toolBar);
+
+		JButton btnLoadLastDisk = new JButton("Load Last Disk");
+		btnLoadLastDisk.setMnemonic('O');
+		btnLoadLastDisk.addActionListener(adapterForDiskUtility);
+		btnLoadLastDisk.setName(BTN_LOAD_LAST_FILE);
+		toolBar.add(btnLoadLastDisk);
 
 		Component horizontalStrut = Box.createHorizontalStrut(20);
 		toolBar.add(horizontalStrut);
@@ -1875,13 +1895,6 @@ public class DiskUtility extends JDialog {
 		gbc_panelFileHex.gridy = 0;
 		panelFileDislay.add(panelFileHex, gbc_panelFileHex);
 
-		// GridBagLayout gbl_panelFileHex = new GridBagLayout();
-		// gbl_panelFileHex.columnWidths = new int[]{0};
-		// gbl_panelFileHex.rowHeights = new int[]{0};
-		// gbl_panelFileHex.columnWeights = new double[]{Double.MIN_VALUE};
-		// gbl_panelFileHex.rowWeights = new double[]{Double.MIN_VALUE};
-		// panelFileHex.setLayout(gbl_panelFileHex);
-		//
 		JPanel tabPhysical = new JPanel();
 		tabbedPane.addTab("Physical View", null, tabPhysical, null);
 		GridBagLayout gbl_tabPhysical = new GridBagLayout();
@@ -2392,7 +2405,6 @@ public class DiskUtility extends JDialog {
 		cbCPMFileInOut = new JComboBox<String>();
 		cbCPMFileInOut.setFont(new Font("Arial", Font.BOLD, 13));
 		cbCPMFileInOut.setName(CB_CPM_FILE_IN_OUT);
-		// cbCPMFileInOut.addActionListener(adapterForDiskUtility);
 		cbCPMFileInOut.setEditable(true);
 		cbCPMFileInOut.setMaximumSize(new Dimension(200, 20));
 		cbCPMFileInOut.setMinimumSize(new Dimension(200, 20));
@@ -2600,17 +2612,17 @@ public class DiskUtility extends JDialog {
 		this.setJMenuBar(menuBar);
 
 		JMenu mnuDisk = new JMenu("Disk");
+		mnuDisk.setMnemonic(KeyEvent.VK_D);
 		menuBar.add(mnuDisk);
 
-		mnuDiskLoad = new JMenuItem("Load ...");
+		mnuDiskLoad = new JMenuItem("Load ...", KeyEvent.VK_L);
 		mnuDiskLoad.setName(MNU_DISK_LOAD);
 		mnuDiskLoad.addActionListener(adapterForDiskUtility);
 		mnuDisk.add(mnuDiskLoad);
 
 		JSeparator separator98 = new JSeparator();
 		mnuDisk.add(separator98);
-
-		mnuDiskClose = new JMenuItem("Close...");
+		mnuDiskClose = new JMenuItem("Close...", KeyEvent.VK_C);
 		mnuDiskClose.setName(MNU_DISK_CLOSE);
 		mnuDiskClose.addActionListener(adapterForDiskUtility);
 		mnuDisk.add(mnuDiskClose);
@@ -2618,7 +2630,7 @@ public class DiskUtility extends JDialog {
 		JSeparator separator99 = new JSeparator();
 		mnuDisk.add(separator99);
 
-		mnuDiskSave = new JMenuItem("Save...");
+		mnuDiskSave = new JMenuItem("Save...", KeyEvent.VK_S);
 		mnuDiskSave.setName(MNU_DISK_SAVE);
 		mnuDiskSave.addActionListener(adapterForDiskUtility);
 		mnuDisk.add(mnuDiskSave);
@@ -2631,7 +2643,7 @@ public class DiskUtility extends JDialog {
 		JSeparator separator_2 = new JSeparator();
 		mnuDisk.add(separator_2);
 
-		JMenuItem mnuFileExit = new JMenuItem("Exit");
+		JMenuItem mnuFileExit = new JMenuItem("Exit", KeyEvent.VK_X);
 		mnuFileExit.setName(MNU_DISK_EXIT);
 		mnuFileExit.addActionListener(adapterForDiskUtility);
 		mnuDisk.add(mnuFileExit);
@@ -2721,6 +2733,8 @@ public class DiskUtility extends JDialog {
 	public static final String BTN_IMPORT = "btnImport";
 	public static final String BTN_EXPORT = "btnExport";
 	public static final String BTN_HOST_FILE = "btnHostFile";
+
+	public static final String BTN_LOAD_LAST_FILE = "btnLoadLastFile";
 
 	public static final String BTN_CHANGE_DISK_TYPE = "btnChangeDiskType";
 	public static final String BTN_CHANGE_DISK_FOLDER = "btnChangeDiskFolder";
@@ -2831,14 +2845,6 @@ public class DiskUtility extends JDialog {
 				doImport();
 				break;
 
-			// case BTN_BULK_EXPORT:
-			// doBulkExport();
-			// break;
-			//
-			// case BTN_BULK_IMPORT:
-			// doBulkImport();
-			// break;
-
 			case CB_FILE_NAMES:
 				displaySelectedFile();
 				break;
@@ -2861,6 +2867,10 @@ public class DiskUtility extends JDialog {
 				break;
 			case BTN_LIST_FILES:
 				doListFiles();
+				break;
+
+			case BTN_LOAD_LAST_FILE:
+				doLoadLastFile();
 				break;
 
 			default:
@@ -2916,6 +2926,52 @@ public class DiskUtility extends JDialog {
 		}// stateChanged
 
 	}// class AdapterAction
+
+	class AutoLoad implements Runnable {
+
+		@Override
+		public void run() {
+			StringSelection s1 = new StringSelection(activeDiskAbsolutePath);
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(s1, null);
+
+			 try {
+			 Thread.sleep(1000);
+
+			 Robot robot = new Robot();
+			 robot.setAutoDelay(40);
+			 robot.setAutoWaitForIdle(true);
+			
+			 robot.keyPress(KeyEvent.VK_ALT);
+			 robot.keyPress(KeyEvent.VK_D);
+			 robot.keyRelease(KeyEvent.VK_D);
+			 robot.keyRelease(KeyEvent.VK_ALT);
+			
+			 robot.keyPress(KeyEvent.VK_L);
+			 robot.keyRelease(KeyEvent.VK_L);
+			
+			 robot.keyPress(KeyEvent.VK_CONTROL);
+			 robot.keyPress(KeyEvent.VK_V);
+			 robot.keyRelease(KeyEvent.VK_V);
+			 robot.keyRelease(KeyEvent.VK_CONTROL);
+			
+			 robot.keyPress(KeyEvent.VK_TAB);
+			 robot.keyRelease(KeyEvent.VK_TAB);
+			 robot.keyPress(KeyEvent.VK_TAB);
+			 robot.keyRelease(KeyEvent.VK_TAB);
+			
+			 robot.keyPress(KeyEvent.VK_ENTER);
+			 robot.keyRelease(KeyEvent.VK_ENTER);
+			 
+			 robot.keyRelease(KeyEvent.VK_ALT);
+			
+			 robot = null;
+			
+			 } catch (InterruptedException | AWTException e) {//
+			 // TODO Auto-generated catch block
+			 e.printStackTrace();
+			 } // try
+		}// run
+	}// class AutoLoad
 
 	public static class FileNameVerifier extends InputVerifier {
 		String fileNameRegex = "[\\w|\\?]{0,7}[\\w|\\?|*]{1}\\.?[\\w|\\?]{0,2}[\\w|\\?|*]?";
