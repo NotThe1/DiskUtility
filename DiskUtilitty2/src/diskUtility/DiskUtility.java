@@ -1322,9 +1322,8 @@ public class DiskUtility extends JDialog {
 		this.setSize(myPrefs.getInt("Width", 761), myPrefs.getInt("Height", 693));
 		this.setLocation(myPrefs.getInt("LocX", 100), myPrefs.getInt("LocY", 100));
 
-		// myPrefs.put("LastDisk", activeDiskAbsolutePath);
 		activeDiskAbsolutePath = myPrefs.get("LastDisk", "C:\\");
-		System.out.printf("[DiskUtility.appInit] %s%n", activeDiskAbsolutePath);
+//		System.out.printf("[DiskUtility.appInit] %s%n", activeDiskAbsolutePath);
 		hostDirectory = myPrefs.get("HostDirectory", System.getProperty(USER_HOME, THIS_DIR));
 		lblFolder.setText(myPrefs.get("CatalogFolder", System.getProperty(USER_HOME, THIS_DIR)));
 		txtFindFileName.setText(myPrefs.get("FindFileName", "*.*"));
