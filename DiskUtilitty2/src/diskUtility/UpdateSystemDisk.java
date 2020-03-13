@@ -10,7 +10,7 @@ import java.util.Scanner;
 
 import javax.swing.JFileChooser;
 
-import support.AppLogger;
+import appLogger.AppLogger;
 import support.DiskMetrics;
 import support.FilePicker;
 

@@ -1,9 +1,10 @@
 package diskUtility;
 
-import java.awt.AWTException;
 /*
  * 2019-12-03  Auto load of CMP file name after selecting single host
  */
+
+import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -12,6 +13,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Robot;
@@ -78,12 +80,12 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import appLogger.AppLogger;
 import hdNumberBox.HDNumberBox;
 import hdNumberBox.HDNumberValueChangeEvent;
 import hdNumberBox.HDNumberValueChangeListener;
 import hdNumberBox.HDSeekPanel;
 import hexEditPanel.HexEditDisplayPanel;
-import support.AppLogger;
 import support.CPMDirectory;
 import support.CPMDirectoryEntry;
 import support.CPMFile;
@@ -92,9 +94,19 @@ import support.DiskMetrics;
 import support.FilePicker;
 import support.RawDiskDrive;
 
+/*
+ * all icons from SourceForge\icons\png\22X22\actions
+ * except:
+ *        SourceForge\icons\png\22X22\devices\printer-7.png
+ * except SourceForge\icons\png\128X128\kcmcwm.png
+ */
+
 public class DiskUtility extends JDialog {
 	private static final long serialVersionUID = 1L;
 
+	Image classImage = Toolkit.getDefaultToolkit().getImage(DiskUtility.class.getResource("/document-export-2.png"));
+
+	
 	AppLogger log = AppLogger.getInstance();
 
 	private String activeDiskName;
@@ -1374,6 +1386,7 @@ public class DiskUtility extends JDialog {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
+		this.setIconImage(classImage);
 		this.setTitle("DiskUtility - Stand alone   3.0");
 		this.setBounds(100, 100, 655, 626);
 		// setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
