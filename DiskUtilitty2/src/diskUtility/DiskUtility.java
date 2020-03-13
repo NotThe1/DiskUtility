@@ -81,10 +81,10 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import appLogger.AppLogger;
-import hdNumberBox.HDNumberBox;
+import hdNumberBox.HDNbox;
+import hdNumberBox.HDNseek;
 import hdNumberBox.HDNumberValueChangeEvent;
 import hdNumberBox.HDNumberValueChangeListener;
-import hdNumberBox.HDSeekPanel;
 import hexEditDisplayPanel.HexEditDisplayPanel;
 import support.CPMDirectory;
 import support.CPMDirectoryEntry;
@@ -148,7 +148,7 @@ public class DiskUtility extends JDialog {
 
 	private HexEditDisplayPanel panelFileHex;
 	private HexEditDisplayPanel panelSectorDisplay;
-	private ArrayList<HDNumberBox> hdNumberBoxes = new ArrayList<HDNumberBox>();
+	private ArrayList<HDNbox> hdNumberBoxes = new ArrayList<HDNbox>();
 
 	public HFS hostFileSelection;
 
@@ -472,7 +472,7 @@ public class DiskUtility extends JDialog {
 		lblMaxDirectoryEntry.setText(String.format(radixFormat, maxDirectoryEntry));
 		lblMaxBlockNumber.setText(String.format(radixFormat, maxBlockNumber));
 
-		for (HDNumberBox hdNumberBox : hdNumberBoxes) {
+		for (HDNbox hdNumberBox : hdNumberBoxes) {
 			hdNumberBox.setDecimalDisplay(tbDisplayBase.isSelected());
 		} // for
 		hdnSeekPanel.setDecimalDisplay(tbDisplayBase.isSelected());
@@ -1939,7 +1939,7 @@ public class DiskUtility extends JDialog {
 		gbc_label10.gridy = 0;
 		panelHeadTrackSector.add(label10, gbc_label10);
 
-		hdnHead = new HDNumberBox();
+		hdnHead = new HDNbox();
 		hdnHead.setName(HDN_HEAD);
 		hdnHead.addHDNumberValueChangedListener(adapterForDiskUtility);
 		hdnHead.setPreferredSize(new Dimension(50, 20));
@@ -1970,7 +1970,7 @@ public class DiskUtility extends JDialog {
 		gbc_label11.gridy = 0;
 		panelHeadTrackSector.add(label11, gbc_label11);
 
-		hdnTrack = new HDNumberBox();
+		hdnTrack = new HDNbox();
 		hdnTrack.setName(HDN_TRACK);
 		hdnTrack.addHDNumberValueChangedListener(adapterForDiskUtility);
 		hdnTrack.setPreferredSize(new Dimension(50, 20));
@@ -2001,7 +2001,7 @@ public class DiskUtility extends JDialog {
 		gbc_label12.gridy = 0;
 		panelHeadTrackSector.add(label12, gbc_label12);
 
-		hdnSector = new HDNumberBox();
+		hdnSector = new HDNbox();
 		hdnSector.setName(HDN_SECTOR);
 		hdnSector.addHDNumberValueChangedListener(adapterForDiskUtility);
 		hdnSector.setPreferredSize(new Dimension(50, 20));
@@ -2060,7 +2060,7 @@ public class DiskUtility extends JDialog {
 		gbl_panelSeek.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
 		panelSeek.setLayout(gbl_panelSeek);
 
-		hdnSeekPanel = new HDSeekPanel();
+		hdnSeekPanel = new HDNseek();
 		hdnSeekPanel.setName(HDN_SEEK_PANEL);
 		hdnSeekPanel.addHDNumberValueChangedListener(adapterForDiskUtility);
 		hdnSeekPanel.setPreferredSize(new Dimension(260, 30));
@@ -2775,10 +2775,10 @@ public class DiskUtility extends JDialog {
 	private JMenuItem mnuDiskSaveAs;
 	private JMenuItem mnuToolsNew;
 	private JMenuItem mnuToolsUpdate;
-	private HDNumberBox hdnHead;
-	private HDNumberBox hdnSector;
-	private HDNumberBox hdnTrack;
-	private HDSeekPanel hdnSeekPanel;
+	private HDNbox hdnHead;
+	private HDNbox hdnSector;
+	private HDNbox hdnTrack;
+	private HDNseek hdnSeekPanel;
 
 	private JLabel lblHeads;
 	private JLabel lblTracksPerHead;
