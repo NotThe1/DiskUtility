@@ -85,7 +85,7 @@ import hdNumberBox.HDNumberBox;
 import hdNumberBox.HDNumberValueChangeEvent;
 import hdNumberBox.HDNumberValueChangeListener;
 import hdNumberBox.HDSeekPanel;
-import hexEditPanel.HexEditDisplayPanel;
+import hexEditDisplayPanel.HexEditDisplayPanel;
 import support.CPMDirectory;
 import support.CPMDirectoryEntry;
 import support.CPMFile;
